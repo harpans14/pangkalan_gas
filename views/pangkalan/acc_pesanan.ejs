@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ACC Pesanan Gas</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h3>Daftar Antrean Pesanan Gas</h3>
+        <table class="table table-bordered bg-white shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nama</th>
+                    <th>Jumlah</th>
+                    <th>Metode</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% listPesanan.forEach(p => { %>
+                <tr>
+                    <td><%= p.nama %> <br> <small class="text-muted"><%= p.alamat %></small></td>
+                    <td><%= p.jumlah %> Tabung</td>
+                    <td><span class="badge bg-info"><%= p.metode %></span></td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="bukaModalACC('<%= p.id %>')">ACC & TTD</button>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal fade" id="modalTTD" tabindex="-1">
+        <div class="modal-dialog">
+            <form action="/pangkalan/acc-proses" method="POST" id="formACC">
+                <div class="modal-content">
+                    <div class="modal-header"><h5>Tanda Tangan Pelanggan</h5></div>
+                    <div class="modal-body text-center">
+                        <canvas id="canvasTTD" class="border" width="400" height="200"></canvas>
+                        <input type="hidden" name="id_transaksi" id="idTrx">
+                        <input type="hidden" name="ttd_data" id="ttdData">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="signaturePad.clear()">Hapus</button>
+                        <button type="submit" class="btn btn-success">Konfirmasi Selesai</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvasTTD');
+        const signaturePad = new SignaturePad(canvas);
+        const modal = new bootstrap.Modal(document.getElementById('modalTTD'));
+
+        function bukaModalACC(id) {
+            document.getElementById('idTrx').value = id;
+            modal.show();
+        }
+
+        document.getElementById('formACC').onsubmit = function() {
+            if (signaturePad.isEmpty()) {
+                alert("Silakan tanda tangan dulu!");
+                return false;
+            }
+            document.getElementById('ttdData').value = signaturePad.toDataURL(); // Simpan ttd sebagai gambar base64
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
