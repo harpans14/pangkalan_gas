@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Pembeli</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-body">
+                        <h5>Halo, <%= user.username %>!</h5>
+                        <p class="text-muted"><%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %></p>
+                        <hr>
+                        <p>Sisa Kuota Minggu Ini: <strong><%= sisaKuota %> Tabung</strong></p>
+                        <p>Status Tabung: <strong><%= saldoTabung >= 0 ? 'Simpan: ' + saldoTabung : 'Pinjam: ' + Math.abs(saldoTabung) %></strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">Pesan Gas LPG 3Kg</div>
+                    <div class="card-body">
+                        <% if (sisaKuota <= 0) { %>
+                            <div class="alert alert-danger">Maaf, kuota mingguan Anda sudah habis.</div>
+                        <% } else { %>
+                            <form action="/pembeli/pesan" method="POST">
+                                <input type="hidden" name="user_id" value="<%= user.id %>">
+                                <div class="mb-3">
+                                    <label>Jumlah Tabung (Maks: <%= sisaKuota %>)</label>
+                                    <input type="number" name="jumlah" class="form-control" max="<%= sisaKuota %>" min="1" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label>Metode</label>
+                                    <select name="metode" class="form-select">
+                                        <option value="ambil">Ambil di Pangkalan</option>
+                                        <option value="kirim">Kirim ke Alamat (Delivery)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Buat Pesanan</button>
+                            </form>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
