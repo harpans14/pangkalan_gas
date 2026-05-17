@@ -17,4 +17,7 @@ router.post('/tambah-barang-masuk', pangkalanController.tambahBarangMasuk);
 router.post('/edit-barang-masuk/:id', pangkalanController.editBarangMasuk);
 router.post('/hapus-barang-masuk/:id', pangkalanController.hapusBarangMasuk);
 
+router.get('/laporan', pangkalanController.laporanPenjualan);
+router.get('/laporan/pdf', pangkalanController.downloadLaporanPDF);
+
 module.exports = router;
