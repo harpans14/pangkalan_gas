@@ -36,7 +36,7 @@ module.exports = {
         type: Sequelize.STRING
       },
       status: {
-        type: Sequelize.ENUM('pending', 'ACC', 'ditolak'),
+        type: Sequelize.ENUM('pending', 'ACC', 'ditolak', 'disetujui', 'selesai'),
         defaultValue: 'pending'
       },
       tanda_tangan: {
