@@ -6,6 +6,11 @@
 </head>
 <body class="bg-light">
     <div class="container mt-4">
+        <div class="d-flex justify-content-between mb-3">
+            <h3>Dashboard Pembeli</h3>
+            <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+        </div>
+
         <div class="row">
             <div class="col-md-4">
                 <div class="card mb-3 shadow-sm">
@@ -20,14 +25,22 @@
             </div>
 
             <div class="col-md-8">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm mb-3">
                     <div class="card-header bg-success text-white">Pesan Gas LPG 3Kg</div>
                     <div class="card-body">
                         <% if (sisaKuota <= 0) { %>
                             <div class="alert alert-danger">Maaf, kuota mingguan Anda sudah habis.</div>
                         <% } else { %>
                             <form action="/pembeli/pesan" method="POST">
-                                <input type="hidden" name="user_id" value="<%= user.id %>">
+                                <div class="mb-3">
+                                    <label>Pilih Produk</label>
+                                    <select name="produk_id" class="form-select">
+                                        <option value="">-- Pilih --</option>
+                                        <% daftarProduk.forEach(p => { %>
+                                            <option value="<%= p.id %>"><%= p.nama %> - Rp<%= p.harga.toLocaleString() %> (Stok: <%= p.stok %>)</option>
+                                        <% }) %>
+                                    </select>
+                                </div>
                                 <div class="mb-3">
                                     <label>Jumlah Tabung (Maks: <%= sisaKuota %>)</label>
                                     <input type="number" name="jumlah" class="form-control" max="<%= sisaKuota %>" min="1" required>
@@ -41,6 +54,39 @@
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">Buat Pesanan</button>
                             </form>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">Riwayat Transaksi</div>
+                    <div class="card-body">
+                        <% if (riwayatTransaksi.length === 0) { %>
+                            <p class="text-muted">Belum ada riwayat pembelian.</p>
+                        <% } else { %>
+                            <table class="table table-sm">
+                                <thead><tr><th>Produk</th><th>Jumlah</th><th>Harga</th><th>Total</th><th>Metode</th><th>Status</th><th>Tanggal</th></tr></thead>
+                                <tbody>
+                                    <% riwayatTransaksi.forEach(t => { %>
+                                    <tr>
+                                        <td><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                        <td><%= t.jumlah_beli %></td>
+                                        <td><%= t.Produk ? 'Rp' + t.Produk.harga.toLocaleString() : '-' %></td>
+                                        <td><%= t.Produk ? 'Rp' + (t.Produk.harga * t.jumlah_beli).toLocaleString() : '-' %></td>
+                                        <td><%= t.metode === 'kirim' ? 'Dikirim' : t.metode === 'ambil' ? 'Diambil' : (t.metode || '-') %></td>
+                                        <td>
+                                            <% let badgeClass = 'bg-secondary'; %>
+                                            <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'bg-success'; } %>
+                                            <% if (t.status === 'ditolak') { badgeClass = 'bg-danger'; } %>
+                                            <% if (t.status === 'pending') { badgeClass = 'bg-warning text-dark'; } %>
+                                            <% if (t.status === 'selesai') { badgeClass = 'bg-primary'; } %>
+                                            <span class="badge <%= badgeClass %>"><%= t.status %></span>
+                                        </td>
+                                        <td><%= new Date(t.createdAt).toLocaleDateString('id-ID') %></td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
                         <% } %>
                     </div>
                 </div>

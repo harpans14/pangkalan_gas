@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kelola Produk</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between mb-3">
+            <h3>Kelola Produk Gas</h3>
+            <div>
+                <a href="/pangkalan/pesan-masuk" class="btn btn-outline-primary btn-sm">Pesanan Masuk</a>
+                <a href="/pangkalan/barang-masuk" class="btn btn-outline-success btn-sm">Barang Masuk</a>
+                <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">Tambah Produk Baru</div>
+            <div class="card-body">
+                <form action="/pangkalan/tambah-produk" method="POST" class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" name="nama" class="form-control" placeholder="Nama Produk" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" name="harga" class="form-control" placeholder="Harga" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" name="stok" class="form-control" placeholder="Stok Awal" value="0">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-success w-100">Tambah</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <table class="table table-bordered bg-white shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nama</th>
+                    <th>Harga</th>
+                    <th>Stok</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (produk.length === 0) { %>
+                <tr><td colspan="4" class="text-center text-muted">Belum ada produk.</td></tr>
+                <% } else { %>
+                <% produk.forEach(p => { %>
+                <tr>
+                    <td><%= p.nama %></td>
+                    <td>Rp <%= (p.harga || 0).toLocaleString() %></td>
+                    <td><%= p.stok %></td>
+                    <td>
+                        <form action="/pangkalan/hapus-produk/<%= p.id %>" method="POST" onsubmit="return confirm('Hapus produk ini?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                        </form>
+                    </td>
+                </tr>
+                <% }) } %>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

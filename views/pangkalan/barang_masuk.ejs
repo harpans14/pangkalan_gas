@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Barang Masuk</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between mb-3">
+            <h3>Data Barang Masuk</h3>
+            <div>
+                <a href="/pangkalan/kelola-produk" class="btn btn-outline-primary btn-sm">Kelola Produk</a>
+                <a href="/pangkalan/pesan-masuk" class="btn btn-outline-primary btn-sm">Pesanan Masuk</a>
+                <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+            </div>
+        </div>
+
+        <%
+            let alertMsg = '';
+            let alertType = '';
+            if (success === 'tambah_berhasil') { alertMsg = 'Barang masuk berhasil dicatat. Stok sudah diperbarui.'; alertType = 'success'; }
+            else if (success === 'edit_berhasil') { alertMsg = 'Data barang masuk berhasil diubah. Stok sudah disesuaikan.'; alertType = 'success'; }
+            else if (success === 'hapus_berhasil') { alertMsg = 'Data barang masuk berhasil dihapus. Stok sudah dikurangi.'; alertType = 'success'; }
+            else if (error === 'invalid_input') { alertMsg = 'Data tidak valid. Pastikan produk dipilih dan jumlah diisi dengan benar.'; alertType = 'danger'; }
+            else if (error === 'produk_tidak_ditemukan') { alertMsg = 'Produk tidak ditemukan.'; alertType = 'danger'; }
+            else if (error === 'not_found') { alertMsg = 'Data tidak ditemukan.'; alertType = 'danger'; }
+            else if (error === 'server_error') { alertMsg = 'Terjadi kesalahan server. Silakan coba lagi.'; alertType = 'danger'; }
+        %>
+        <% if (alertMsg) { %>
+            <div class="alert alert-<%= alertType %> alert-dismissible fade show"><%= alertMsg %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        <% } %>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">Tambah Barang Masuk</div>
+            <div class="card-body">
+                <form action="/pangkalan/tambah-barang-masuk" method="POST" class="row g-3">
+                    <div class="col-md-4">
+                        <select name="produk_id" class="form-select" required>
+                            <option value="">-- Pilih Produk --</option>
+                            <% produkList.forEach(p => { %>
+                                <option value="<%= p.id %>"><%= p.nama %> (Stok: <%= p.stok %>)</option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" name="jumlah" class="form-control" placeholder="Jumlah" min="1" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" name="tanggal" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-info w-100" data-bs-toggle="collapse" data-bs-target="#keteranganCollapse">+ Keterangan</button>
+                    </div>
+                    <div class="col-12 collapse" id="keteranganCollapse">
+                        <textarea name="keterangan" class="form-control" placeholder="Keterangan (opsional)" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <table class="table table-bordered bg-white shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>No</th>
+                    <th>Tanggal</th>
+                    <th>Produk</th>
+                    <th>Jumlah</th>
+                    <th>Keterangan</th>
+                    <th>Dicatat Oleh</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (barangMasuk.length === 0) { %>
+                <tr><td colspan="7" class="text-center text-muted">Belum ada barang masuk.</td></tr>
+                <% } else { %>
+                <% barangMasuk.forEach((b, i) => { %>
+                <tr>
+                    <td><%= i + 1 %></td>
+                    <td><%= b.tanggal ? new Date(b.tanggal).toLocaleDateString('id-ID') : '-' %></td>
+                    <td><%= b.Produk ? b.Produk.nama : '-' %></td>
+                    <td><%= b.jumlah %> Tabung</td>
+                    <td><%= b.keterangan || '-' %></td>
+                    <td><%= b.User ? b.User.username : '-' %></td>
+                    <td>
+                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<%= b.id %>">Edit</button>
+                        <form action="/pangkalan/hapus-barang-masuk/<%= b.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Hapus data barang masuk ini? Stok akan dikurangi <%= b.jumlah %>.')">
+                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                        </form>
+                    </td>
+                </tr>
+
+                <div class="modal fade" id="editModal<%= b.id %>" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="/pangkalan/edit-barang-masuk/<%= b.id %>" method="POST">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Barang Masuk</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Produk</label>
+                                        <select name="produk_id" class="form-select" required>
+                                            <% produkList.forEach(p => { %>
+                                                <option value="<%= p.id %>" <%= b.produk_id === p.id ? 'selected' : '' %>><%= p.nama %></option>
+                                            <% }) %>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jumlah</label>
+                                        <input type="number" name="jumlah" class="form-control" value="<%= b.jumlah %>" min="1" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tanggal</label>
+                                        <input type="date" name="tanggal" class="form-control" value="<%= b.tanggal ? new Date(b.tanggal).toISOString().split('T')[0] : '' %>">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Keterangan</label>
+                                        <textarea name="keterangan" class="form-control" rows="2"><%= b.keterangan || '' %></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-warning">Simpan Perubahan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <% }) } %>
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
