@@ -1,68 +1,57 @@
-const db = require('../models');
+const { User, Transaksi, LogTabung, Produk } = require('../models');
 const { Op } = require('sequelize');
 
-// Mengambil model langsung dari instance sequelize untuk menghindari masalah import
-const User = db.sequelize.models.User;
-const Transaksi = db.sequelize.models.Transaksi;
-const LogTabung = db.sequelize.models.LogTabung;
-
-// 1. Fungsi Tampilan Dashboard
 exports.getDashboard = async (req, res) => {
     try {
-        console.log("Cek Koneksi Model - User:", !!User);
+        const userId = req.session.userId;
 
-        if (!User) {
-            return res.status(500).send("Model User tidak ditemukan. Cek folder models!");
-        }
-
-        // Ambil data pembeli pertama untuk simulasi
-        const user = await User.findOne({ where: { role: 'pembeli' } });
-        
+        const user = await User.findByPk(userId);
         if (!user) {
-            return res.send("Belum ada pelanggan. Silakan daftar dulu di menu pangkalan.");
+            return res.status(404).send("User tidak ditemukan!");
         }
 
-        // Hitung Kuota Mingguan
         const startOfWeek = new Date();
         startOfWeek.setDate(startOfWeek.getDate() - 7);
 
-        let totalBeliMingguIni = 0;
-        if (Transaksi) {
-            totalBeliMingguIni = await Transaksi.sum('jumlah_beli', {
-                where: {
-                    user_id: user.id,
-                    status: 'ACC',
-                    createdAt: { [Op.gte]: startOfWeek }
-                }
-            }) || 0;
-        }
+        const totalBeliMingguIni = await Transaksi.sum('jumlah_beli', {
+            where: {
+                user_id: userId,
+                status: 'ACC',
+                createdAt: { [Op.gte]: startOfWeek }
+            }
+        }) || 0;
 
         const limit = user.sub_role === 'rumahtangga' ? 1 : 3;
-        const sisaKuota = limit - totalBeliMingguIni;
+        const sisaKuota = Math.max(0, limit - totalBeliMingguIni);
 
-        let saldoTabung = 0;
-        if (LogTabung) {
-            saldoTabung = await LogTabung.sum('jumlah_tabung', { where: { user_id: user.id } }) || 0;
-        }
+        const saldoTabung = await LogTabung.sum('jumlah_tabung', {
+            where: { user_id: userId }
+        }) || 0;
 
-        res.render('pembeli/dashboard', { user, sisaKuota, saldoTabung });
+        const daftarProduk = await Produk.findAll();
+
+        const riwayatTransaksi = await Transaksi.findAll({
+            where: { user_id: userId },
+            include: [{ model: Produk }],
+            order: [['createdAt', 'DESC']],
+            limit: 10
+        });
+
+        res.render('pembeli/dashboard', { user, sisaKuota, saldoTabung, daftarProduk, riwayatTransaksi });
     } catch (error) {
         console.error("EROR DASHBOARD:", error);
         res.status(500).send("Detail Error Dashboard: " + error.message);
     }
 };
 
-// 2. Fungsi Proses Pesan Gas (WAJIB ADA AGAR ROUTE TIDAK ERROR)
 exports.pesanGas = async (req, res) => {
     try {
-        const { user_id, jumlah, metode } = req.body;
-
-        if (!Transaksi) {
-            return res.status(500).send("Model Transaksi belum dibuat!");
-        }
+        const userId = req.session.userId;
+        const { produk_id, jumlah, metode } = req.body;
 
         await Transaksi.create({
-            user_id,
+            user_id: userId,
+            produk_id: produk_id || null,
             jumlah_beli: jumlah,
             metode,
             status: 'pending',

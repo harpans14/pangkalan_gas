@@ -4,7 +4,9 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
-      // define association here
+      User.hasMany(models.Transaksi, { foreignKey: 'user_id' });
+      User.hasMany(models.LogTabung, { foreignKey: 'user_id' });
+      User.hasMany(models.Produk, { foreignKey: 'createdBy' });
     }
   }
   User.init({
@@ -16,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     alamat: DataTypes.TEXT
   }, {
     sequelize,
-    modelName: 'User', // PASTIKAN NAMANYA 'User'
+    modelName: 'User',
   });
-  return User; // <--- INI HARUS ADA DAN TIDAK BOLEH TYPO
+  return User;
 };

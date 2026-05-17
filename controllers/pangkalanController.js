@@ -1,21 +1,22 @@
-const { Transaksi, User, Stok } = require('../models');
+const { Transaksi, User, Produk } = require('../models');
 
 exports.getPesananMasuk = async (req, res) => {
-    // Ambil semua pesanan yang statusnya masih 'pending'
     const pesanan = await Transaksi.findAll({
-        where: { status: 'pending' }
+        where: { status: 'pending' },
+        include: [
+            { model: User, attributes: ['username', 'alamat'] },
+            { model: Produk, attributes: ['nama', 'harga'] }
+        ],
+        order: [['createdAt', 'DESC']]
     });
 
-    // Gabungkan dengan data user secara manual (karena no foreign key)
-    const listPesanan = await Promise.all(pesanan.map(async (p) => {
-        const user = await User.findByPk(p.user_id);
-        return {
-            id: p.id,
-            nama: user ? user.username : 'Anonim',
-            alamat: user ? user.alamat : '-',
-            jumlah: p.jumlah_beli,
-            metode: p.metode
-        };
+    const listPesanan = pesanan.map(p => ({
+        id: p.id,
+        nama: p.User ? p.User.username : 'Anonim',
+        alamat: p.User ? p.User.alamat : '-',
+        produk: p.Produk ? p.Produk.nama : '-',
+        jumlah: p.jumlah_beli,
+        metode: p.metode
     }));
 
     res.render('pangkalan/acc_pesanan', { listPesanan });
@@ -24,18 +25,41 @@ exports.getPesananMasuk = async (req, res) => {
 exports.accPesanan = async (req, res) => {
     const { id_transaksi, ttd_data } = req.body;
 
-    // 1. Update status transaksi jadi ACC dan simpan Tanda Tangan (base64)
     await Transaksi.update(
         { status: 'ACC', tanda_tangan: ttd_data },
         { where: { id: id_transaksi } }
     );
 
-    // 2. Potong stok gas di pangkalan (Logika stok sederhana)
     const transaksi = await Transaksi.findByPk(id_transaksi);
-    const stokSaatIni = await Stok.findOne();
-    if (stokSaatIni) {
-        await stokSaatIni.decrement('jumlah', { by: transaksi.jumlah_beli });
+
+    if (transaksi.produk_id) {
+        const produk = await Produk.findByPk(transaksi.produk_id);
+        if (produk) {
+            await produk.decrement('stok', { by: transaksi.jumlah_beli });
+        }
     }
 
-    res.redirect('/pangkalan/pesanan-masuk?success=true');
+    res.redirect('/pangkalan/pesan-masuk?success=true');
+};
+
+exports.kelolaProduk = async (req, res) => {
+    const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
+    res.render('pangkalan/kelola_produk', { produk });
+};
+
+exports.tambahProduk = async (req, res) => {
+    const { nama, harga, stok } = req.body;
+    await Produk.create({
+        nama,
+        harga,
+        stok: stok || 0,
+        createdBy: req.session.userId
+    });
+    res.redirect('/pangkalan/kelola-produk');
+};
+
+exports.hapusProduk = async (req, res) => {
+    const { id } = req.params;
+    await Produk.destroy({ where: { id, createdBy: req.session.userId } });
+    res.redirect('/pangkalan/kelola-produk');
 };

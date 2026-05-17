@@ -7,10 +7,22 @@
 <body class="d-flex align-items-center justify-content-center vh-100">
     <div class="text-center">
         <h1>Selamat Datang di Sistem Pangkalan Gas</h1>
-        <div class="mt-4">
-            <a href="/pangkalan/daftar-pelanggan" class="btn btn-primary">Masuk sebagai Pangkalan (Daftar Pelanggan)</a>
-            <button class="btn btn-outline-secondary">Masuk sebagai Pembeli (Soon)</button>
-        </div>
+        <% if (session && session.userId) { %>
+            <p>Halo, Anda sudah login sebagai <strong><%= session.role %></strong></p>
+            <div class="mt-4">
+                <% if (session.role === 'pangkalan') { %>
+                    <a href="/pangkalan/pesan-masuk" class="btn btn-primary">Pesanan Masuk</a>
+                <% } else { %>
+                    <a href="/pembeli/dashboard" class="btn btn-primary">Dashboard Pembeli</a>
+                <% } %>
+                <a href="/logout" class="btn btn-danger">Logout</a>
+            </div>
+        <% } else { %>
+            <div class="mt-4">
+                <a href="/login" class="btn btn-primary">Login</a>
+                <a href="/pangkalan/daftar-pelanggan" class="btn btn-outline-secondary">Daftar Pelanggan Baru</a>
+            </div>
+        <% } %>
     </div>
 </body>
 </html>
