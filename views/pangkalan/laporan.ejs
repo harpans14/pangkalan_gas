@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Penjualan - Pangkalan Gas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Admin</small>
+    </div>
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/pesan-masuk">
+                <i class="bi bi-inbox"></i> Pesanan Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/kelola-produk">
+                <i class="bi bi-box"></i> Kelola Produk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/barang-masuk">
+                <i class="bi bi-arrow-down-circle"></i> Barang Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link active" href="/pangkalan/laporan">
+                <i class="bi bi-file-earmark-bar-graph"></i> Laporan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/daftar-pelanggan">
+                <i class="bi bi-person-plus"></i> Daftar Pelanggan
+            </a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">A</div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;">Admin</div>
+                <small class="text-muted">Pangkalan</small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+    <div class="main-content page-entrance">
+        <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Laporan Penjualan Bulanan</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-done"><i class="bi bi-file-earmark-pdf"></i> <%= namaBulan %> <%= tahun %></span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <!-- FILTER -->
+        <div class="card-gas mb-4 reveal">
+            <div class="card-header">
+                <i class="bi bi-funnel me-2"></i>Filter Laporan
+            </div>
+            <div class="card-body">
+                <form method="GET" action="/pangkalan/laporan" class="row g-3 align-items-end form-gas">
+                    <div class="col-md-3">
+                        <label class="form-label">Bulan</label>
+                        <select name="bulan" class="form-select">
+                            <% const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; %>
+                            <% bulanList.forEach((b, i) => { %>
+                                <option value="<%= i+1 %>" <%= (parseInt(bulan) === i+1) ? 'selected' : '' %>><%= b %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tahun</label>
+                        <select name="tahun" class="form-select">
+                            <% for (let thn = tahun; thn >= tahun - 5; thn--) { %>
+                                <option value="<%= thn %>" <%= (parseInt(tahun) === thn) ? 'selected' : '' %>><%= thn %></option>
+                            <% } %>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-gas btn-gas-primary w-100">
+                            <i class="bi bi-search"></i> Tampilkan
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/pangkalan/laporan/pdf?bulan=<%= bulan %>&tahun=<%= tahun %>" class="btn btn-gas btn-gas-danger w-100">
+                            <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="row g-3 mb-4 reveal-stagger">
+            <div class="col-6 col-md-3">
+                <div class="card-stat stat-teal h-100">
+                    <div class="stat-icon"><i class="bi bi-cart-check"></i></div>
+                    <div class="stat-label">Total Transaksi</div>
+                    <div class="stat-value"><%= totalTransaksi %></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-stat stat-green h-100">
+                    <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+                    <div class="stat-label">Tabung Terjual</div>
+                    <div class="stat-value"><%= totalTabung %></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-stat stat-amber h-100">
+                    <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+                    <div class="stat-label">Total Pendapatan</div>
+                    <div class="stat-value" style="font-size:1.25rem;"><%= formatRupiah(totalPendapatan) %></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-stat stat-red h-100">
+                    <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+                    <div class="stat-label">Pending / Ditolak</div>
+                    <div class="stat-value"><%= pendingCount %> / <%= ditolakCount %></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REKAP PER PRODUK -->
+        <div class="card-gas mb-4 reveal">
+            <div class="card-header">
+                <i class="bi bi-pie-chart me-2"></i>Rekap Penjualan Per Produk
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-gas mb-0">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Produk</th>
+                                <th>Harga Satuan</th>
+                                <th>Jumlah Terjual</th>
+                                <th>Total Pendapatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (rekapProduk.length === 0) { %>
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="bi bi-bar-chart"></i></div>
+                                        <h5>Belum Ada Data Penjualan</h5>
+                                        <p>Belum ada transaksi penjualan pada periode ini.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% } else { %>
+                            <% rekapProduk.forEach((p, i) => { %>
+                            <tr>
+                                <td><%= i + 1 %></td>
+                                <td class="fw-bold"><%= p.nama %></td>
+                                <td><%= formatRupiah(p.harga) %></td>
+                                <td><span class="badge badge-approved"><%= p.jumlah %> Tabung</span></td>
+                                <td class="fw-bold text-gas-primary"><%= formatRupiah(p.total) %></td>
+                            </tr>
+                            <% }) } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAIL TRANSAKSI -->
+        <div class="card-gas reveal">
+            <div class="card-header">
+                <i class="bi bi-list-ul me-2"></i>Detail Transaksi
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-gas mb-0">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Tanggal</th>
+                                <th>Pembeli</th>
+                                <th>Produk</th>
+                                <th>Jumlah</th>
+                                <th>Harga</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (transaksi.length === 0) { %>
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+                                        <h5>Belum Ada Transaksi</h5>
+                                        <p>Belum ada transaksi penjualan pada periode ini.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% } else { %>
+                            <% transaksi.forEach((t, i) => { %>
+                            <tr>
+                                <td><%= i + 1 %></td>
+                                <td><%= formatTanggal(t.createdAt) %></td>
+                                <td><%= t.User ? t.User.username : '-' %></td>
+                                <td><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                <td><%= t.jumlah_beli %></td>
+                                <td><%= t.Produk ? formatRupiah(t.Produk.harga) : '-' %></td>
+                                <td class="fw-bold"><%= t.Produk ? formatRupiah(t.Produk.harga * t.jumlah_beli) : '-' %></td>
+                                <td>
+                                    <% let badgeClass = 'bg-secondary'; %>
+                                    <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
+                                    <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
+                                    <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
+                                    <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
+                                    <span class="badge-gas <%= badgeClass %>">
+                                        <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
+                                        <%= t.status %>
+                                    </span>
+                                </td>
+                            </tr>
+                            <% }) } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>

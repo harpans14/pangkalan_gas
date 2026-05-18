@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Produk.belongsTo(models.User, { foreignKey: 'createdBy' });
       Produk.hasMany(models.Transaksi, { foreignKey: 'produk_id' });
+      Produk.hasMany(models.BarangMasuk, { foreignKey: 'produk_id' });
     }
   }
   Produk.init({

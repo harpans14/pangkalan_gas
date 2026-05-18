@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
     produk_id: DataTypes.INTEGER,
     jumlah_beli: DataTypes.INTEGER,
     metode: DataTypes.STRING,
-    status: DataTypes.ENUM('pending', 'ACC', 'ditolak'),
+    status: DataTypes.ENUM('pending', 'ACC', 'ditolak', 'disetujui', 'selesai'),
     tanda_tangan: DataTypes.TEXT,
     tanggal: DataTypes.DATE
   }, {

@@ -16,7 +16,7 @@ exports.getDashboard = async (req, res) => {
         const totalBeliMingguIni = await Transaksi.sum('jumlah_beli', {
             where: {
                 user_id: userId,
-                status: 'ACC',
+                status: 'disetujui',
                 createdAt: { [Op.gte]: startOfWeek }
             }
         }) || 0;

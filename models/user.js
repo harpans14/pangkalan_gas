@@ -7,6 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       User.hasMany(models.Transaksi, { foreignKey: 'user_id' });
       User.hasMany(models.LogTabung, { foreignKey: 'user_id' });
       User.hasMany(models.Produk, { foreignKey: 'createdBy' });
+      User.hasMany(models.BarangMasuk, { foreignKey: 'createdBy' });
     }
   }
   User.init({

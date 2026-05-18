@@ -2,14 +2,34 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Transaksis', {
+    await queryInterface.createTable('BarangMasuks', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      user_id: {
+      produk_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Produks',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'NO ACTION'
+      },
+      jumlah: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+      },
+      keterangan: {
+        type: Sequelize.TEXT
+      },
+      tanggal: {
+        type: Sequelize.DATE
+      },
+      createdBy: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
@@ -18,32 +38,6 @@ module.exports = {
         },
         onUpdate: 'CASCADE',
         onDelete: 'NO ACTION'
-      },
-      produk_id: {
-        type: Sequelize.INTEGER,
-        references: {
-          model: 'Produks',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-      },
-      jumlah_beli: {
-        type: Sequelize.INTEGER,
-        allowNull: false
-      },
-      metode: {
-        type: Sequelize.STRING
-      },
-      status: {
-        type: Sequelize.ENUM('pending', 'ACC', 'ditolak', 'disetujui', 'selesai'),
-        defaultValue: 'pending'
-      },
-      tanda_tangan: {
-        type: Sequelize.TEXT
-      },
-      tanggal: {
-        type: Sequelize.DATE
       },
       createdAt: {
         allowNull: false,
@@ -56,6 +50,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Transaksis');
+    await queryInterface.dropTable('BarangMasuks');
   }
 };
