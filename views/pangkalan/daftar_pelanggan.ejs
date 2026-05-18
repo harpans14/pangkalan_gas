@@ -8,75 +8,247 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="auth-page page-entrance">
+<body>
 
-<div class="auth-card" style="max-width:500px;">
-    <div class="auth-header">
-        <div style="font-size:2.5rem;margin-bottom:0.5rem;"><i class="bi bi-person-plus-fill"></i></div>
-        <h4>Daftar Pelanggan Baru</h4>
-        <p>Isi data diri untuk menjadi pelanggan gas</p>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Admin</small>
     </div>
-    <div class="auth-body">
-        <% if (locals.success) { %>
-            <div class="alert alert-gas alert-gas-success alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
-                <i class="bi bi-check-circle-fill"></i>
-                Pelanggan berhasil didaftarkan!
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <% } %>
-
-        <form action="/pangkalan/daftar-pelanggan" method="POST" class="form-gas">
-            <div class="mb-3">
-                <label class="form-label">Nama Lengkap</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-white"><i class="bi bi-person text-gas-primary"></i></span>
-                    <input type="text" name="username" class="form-control" placeholder="Nama lengkap" required>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Password</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-white"><i class="bi bi-lock text-gas-primary"></i></span>
-                    <input type="password" name="password" class="form-control" placeholder="Minimal 6 karakter" required>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">No KTP (16 Digit)</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-white"><i class="bi bi-credit-card text-gas-primary"></i></span>
-                    <input type="text" name="no_ktp" class="form-control" placeholder="Nomor KTP 16 digit" maxlength="16" required>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Jenis Pelanggan</label>
-                <select name="sub_role" class="form-select">
-                    <option value="rumahtangga">Rumah Tangga (Limit 1 Tabung/Minggu)</option>
-                    <option value="usaha_mikro">Usaha Mikro (Limit 3 Tabung/Minggu)</option>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label class="form-label">Alamat Lengkap</label>
-                <textarea name="alamat" class="form-control" placeholder="Masukkan alamat lengkap" rows="3"></textarea>
-            </div>
-            <button type="submit" class="btn btn-gas btn-gas-primary w-100 btn-gas-lg">
-                <i class="bi bi-person-check"></i> Daftarkan Pelanggan
-            </button>
-        </form>
-
-        <div class="text-center mt-4">
-            <p class="text-muted mb-1" style="font-size:0.9rem;">Sudah punya akun?</p>
-            <a href="/login" class="fw-bold text-gas-primary text-decoration-none">
-                <i class="bi bi-box-arrow-in-right"></i> Login
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/pesan-masuk">
+                <i class="bi bi-inbox"></i> Pesanan Masuk
             </a>
         </div>
-        <div class="text-center mt-2">
-            <a href="/" class="text-muted text-decoration-none small">
-                <i class="bi bi-arrow-left"></i> Kembali ke Beranda
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/kelola-produk">
+                <i class="bi bi-box"></i> Kelola Produk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/barang-masuk">
+                <i class="bi bi-arrow-down-circle"></i> Barang Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/laporan">
+                <i class="bi bi-file-earmark-bar-graph"></i> Laporan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link active" href="/pangkalan/daftar-pelanggan">
+                <i class="bi bi-person-plus"></i> Daftar Pelanggan
+            </a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">A</div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;">Admin</div>
+                <small class="text-muted">Pangkalan</small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
             </a>
         </div>
     </div>
 </div>
 
+<div class="main-content page-entrance">
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Daftar Pelanggan</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-gas-primary"><i class="bi bi-people"></i> <%= pelanggan.length %> Pelanggan</span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <%
+            let alertMsg = '';
+            let alertType = '';
+            if (success === 'true') { alertMsg = 'Pelanggan berhasil didaftarkan!'; alertType = 'success'; }
+            else if (success === 'edit_berhasil') { alertMsg = 'Data pelanggan berhasil diperbarui.'; alertType = 'success'; }
+            else if (success === 'hapus_berhasil') { alertMsg = 'Pelanggan berhasil dihapus.'; alertType = 'success'; }
+            else if (error === 'not_found') { alertMsg = 'Pelanggan tidak ditemukan.'; alertType = 'danger'; }
+            else if (error === 'ktp_duplikat') { alertMsg = 'No KTP sudah terdaftar di sistem!'; alertType = 'danger'; }
+            else if (error === 'invalid_sub_role') { alertMsg = 'Jenis pelanggan tidak valid.'; alertType = 'danger'; }
+            else if (error === 'server_error') { alertMsg = 'Terjadi kesalahan server. Silakan coba lagi.'; alertType = 'danger'; }
+        %>
+        <% if (alertMsg) { %>
+            <div class="alert alert-gas alert-gas-<%= alertType %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi <%= alertType === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
+                <%= alertMsg %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <div class="card-gas mb-4 reveal">
+            <div class="card-header bg-gas-primary text-white">
+                <i class="bi bi-plus-circle me-2"></i>Tambah Pelanggan Baru
+            </div>
+            <div class="card-body">
+                <form action="/pangkalan/daftar-pelanggan" method="POST" class="row g-3 form-gas">
+                    <div class="col-md-4">
+                        <label class="form-label">Nama Lengkap</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-person text-gas-primary"></i></span>
+                            <input type="text" name="username" class="form-control" placeholder="Nama lengkap" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-lock text-gas-primary"></i></span>
+                            <input type="password" name="password" class="form-control" placeholder="Minimal 6 karakter" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">No KTP (16 Digit)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-credit-card text-gas-primary"></i></span>
+                            <input type="text" name="no_ktp" class="form-control" placeholder="Nomor KTP 16 digit" maxlength="16" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Jenis Pelanggan</label>
+                        <select name="sub_role" class="form-select">
+                            <option value="rumahtangga">Rumah Tangga (Limit 1 Tabung/Minggu)</option>
+                            <option value="usaha_mikro">Usaha Mikro (Limit 3 Tabung/Minggu)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Alamat Lengkap</label>
+                        <textarea name="alamat" class="form-control" placeholder="Masukkan alamat lengkap" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-gas btn-gas-success">
+                            <i class="bi bi-person-check"></i> Daftarkan Pelanggan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card-gas reveal">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-people me-2"></i>Semua Pelanggan</span>
+                <span class="badge bg-gas-primary"><%= pelanggan.length %> Terdaftar</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-gas mb-0">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama</th>
+                                <th>No KTP</th>
+                                <th>Jenis</th>
+                                <th>Alamat</th>
+                                <th>Terdaftar</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (pelanggan.length === 0) { %>
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="bi bi-people"></i></div>
+                                        <h5>Belum Ada Pelanggan</h5>
+                                        <p>Daftarkan pelanggan baru menggunakan form di atas.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% } else { %>
+                            <% pelanggan.forEach((p, i) => { %>
+                            <tr>
+                                <td><%= i + 1 %></td>
+                                <td class="fw-bold"><%= p.username %></td>
+                                <td><%= p.no_ktp %></td>
+                                <td>
+                                    <span class="badge <%= p.sub_role === 'rumahtangga' ? 'badge-pending' : 'badge-approved' %>">
+                                        <%= p.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %>
+                                    </span>
+                                </td>
+                                <td><%= p.alamat || '<span class="text-muted">-</span>' %></td>
+                                <td><%= new Date(p.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
+                                <td>
+                                    <div class="action-group justify-content-center">
+                                        <button type="button" class="btn btn-gas btn-gas-accent btn-gas-sm" data-bs-toggle="modal" data-bs-target="#editModal<%= p.id %>">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
+                                        <form action="/pangkalan/hapus-pelanggan/<%= p.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus pelanggan <%= p.username %>? Semua data terkait akan ikut terhapus.')">
+                                            <button type="submit" class="btn btn-gas btn-gas-danger btn-gas-sm">
+                                                <i class="bi bi-trash"></i> Hapus
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- EDIT MODAL -->
+                            <div class="modal fade modal-gas" id="editModal<%= p.id %>" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form action="/pangkalan/edit-pelanggan/<%= p.id %>" method="POST">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title fw-bold"><i class="bi bi-pencil me-2"></i>Edit Pelanggan</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body form-gas">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Nama Lengkap</label>
+                                                    <input type="text" name="username" class="form-control" value="<%= p.username %>" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Password <small class="text-muted">(kosongkan jika tidak diganti)</small></label>
+                                                    <input type="password" name="password" class="form-control" placeholder="Biarkan kosong jika tidak ingin ganti password">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">No KTP</label>
+                                                    <input type="text" name="no_ktp" class="form-control" value="<%= p.no_ktp %>" maxlength="16" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Jenis Pelanggan</label>
+                                                    <select name="sub_role" class="form-select">
+                                                        <option value="rumahtangga" <%= p.sub_role === 'rumahtangga' ? 'selected' : '' %>>Rumah Tangga</option>
+                                                        <option value="usaha_mikro" <%= p.sub_role === 'usaha_mikro' ? 'selected' : '' %>>Usaha Mikro</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Alamat Lengkap</label>
+                                                    <textarea name="alamat" class="form-control" rows="2"><%= p.alamat || '' %></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-gas btn-gas-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="submit" class="btn btn-gas btn-gas-accent">
+                                                    <i class="bi bi-check-lg"></i> Simpan Perubahan
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }) } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ const app = express();
 const pangkalanRoutes = require('./routes/pangkalanRoutes');
 const pembeliRoutes = require('./routes/pembeliRoutes');
 const authController = require('./controllers/authController');
-const { isLoggedIn } = require('./middleware/auth');
+const { isLoggedIn, isRole } = require('./middleware/auth');
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -26,10 +26,7 @@ app.get('/login', (req, res) => {
 app.post('/login', authController.login);
 app.get('/logout', authController.logout);
 
-app.get('/pangkalan/daftar-pelanggan', (req, res) => {
-    res.render('pangkalan/daftar_pelanggan');
-});
-app.post('/pangkalan/daftar-pelanggan', authController.registerPembeli);
+app.post('/pangkalan/daftar-pelanggan', isLoggedIn, isRole('pangkalan'), authController.registerPembeli);
 
 app.use('/pangkalan', isLoggedIn, pangkalanRoutes);
 app.use('/pembeli', isLoggedIn, pembeliRoutes);

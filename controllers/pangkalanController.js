@@ -1,6 +1,7 @@
 const { Transaksi, User, Produk, BarangMasuk } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
+const bcrypt = require('bcrypt');
 
 exports.getPesananMasuk = async (req, res) => {
     try {
@@ -238,6 +239,81 @@ exports.hapusBarangMasuk = async (req, res) => {
     } catch (error) {
         console.error("ERROR HAPUS BARANG MASUK:", error);
         return res.redirect('/pangkalan/barang-masuk?error=server_error');
+    }
+};
+
+exports.daftarPelanggan = async (req, res) => {
+    try {
+        const pelanggan = await User.findAll({
+            where: { role: 'pembeli' },
+            attributes: { exclude: ['password'] },
+            order: [['createdAt', 'DESC']]
+        });
+
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+
+        res.render('pangkalan/daftar_pelanggan', { pelanggan, success, error });
+    } catch (error) {
+        console.error("ERROR DAFTAR PELANGGAN:", error);
+        res.status(500).send("Gagal memuat data pelanggan: " + error.message);
+    }
+};
+
+exports.editPelanggan = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { username, password, no_ktp, sub_role, alamat } = req.body;
+
+        const pelanggan = await User.findByPk(id);
+        if (!pelanggan || pelanggan.role !== 'pembeli') {
+            return res.redirect('/pangkalan/daftar-pelanggan?error=not_found');
+        }
+
+        if (no_ktp !== pelanggan.no_ktp) {
+            const cekKtp = await User.findOne({ where: { no_ktp } });
+            if (cekKtp) {
+                return res.redirect('/pangkalan/daftar-pelanggan?error=ktp_duplikat');
+            }
+        }
+
+        if (!['rumahtangga', 'usaha_mikro'].includes(sub_role)) {
+            return res.redirect('/pangkalan/daftar-pelanggan?error=invalid_sub_role');
+        }
+
+        pelanggan.username = username;
+        pelanggan.no_ktp = no_ktp;
+        pelanggan.sub_role = sub_role;
+        pelanggan.alamat = alamat;
+
+        if (password && password.trim() !== '') {
+            pelanggan.password = await bcrypt.hash(password, 10);
+        }
+
+        await pelanggan.save();
+
+        return res.redirect('/pangkalan/daftar-pelanggan?success=edit_berhasil');
+    } catch (error) {
+        console.error("ERROR EDIT PELANGGAN:", error);
+        return res.redirect('/pangkalan/daftar-pelanggan?error=server_error');
+    }
+};
+
+exports.hapusPelanggan = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const pelanggan = await User.findByPk(id);
+        if (!pelanggan || pelanggan.role !== 'pembeli') {
+            return res.redirect('/pangkalan/daftar-pelanggan?error=not_found');
+        }
+
+        await pelanggan.destroy();
+
+        return res.redirect('/pangkalan/daftar-pelanggan?success=hapus_berhasil');
+    } catch (error) {
+        console.error("ERROR HAPUS PELANGGAN:", error);
+        return res.redirect('/pangkalan/daftar-pelanggan?error=server_error');
     }
 };
 

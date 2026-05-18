@@ -20,4 +20,8 @@ router.post('/hapus-barang-masuk/:id', pangkalanController.hapusBarangMasuk);
 router.get('/laporan', pangkalanController.laporanPenjualan);
 router.get('/laporan/pdf', pangkalanController.downloadLaporanPDF);
 
+router.get('/daftar-pelanggan', pangkalanController.daftarPelanggan);
+router.post('/edit-pelanggan/:id', pangkalanController.editPelanggan);
+router.post('/hapus-pelanggan/:id', pangkalanController.hapusPelanggan);
+
 module.exports = router;
