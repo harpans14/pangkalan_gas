@@ -47,6 +47,7 @@ exports.login = async (req, res) => {
 
         req.session.userId = user.id;
         req.session.role = user.role;
+        req.session.username = user.username;
 
         if (user.role === 'pangkalan') {
             res.redirect('/pangkalan/pesan-masuk');

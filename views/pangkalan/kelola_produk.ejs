@@ -34,6 +34,11 @@
             </a>
         </div>
         <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/tabung">
+                <i class="bi bi-archive"></i> Manajemen Tabung
+            </a>
+        </div>
+        <div class="nav-item">
             <a class="nav-link" href="/pangkalan/laporan">
                 <i class="bi bi-file-earmark-bar-graph"></i> Laporan
             </a>
@@ -46,9 +51,9 @@
     </div>
     <div class="sidebar-footer">
         <div class="user-info">
-            <div class="user-avatar">A</div>
+            <div class="user-avatar"><%= username.charAt(0).toUpperCase() %></div>
             <div>
-                <div style="font-weight:600;font-size:0.9rem;">Admin</div>
+                <div style="font-weight:600;font-size:0.9rem;"><%= username %></div>
                 <small class="text-muted">Pangkalan</small>
             </div>
             <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
@@ -72,6 +77,22 @@
     </div>
 
     <div class="page-content">
+        <%
+            let alertMsg = '';
+            let alertType = '';
+            if (success === 'tambah') { alertMsg = 'Produk berhasil ditambahkan!'; alertType = 'success'; }
+            else if (success === 'hapus') { alertMsg = 'Produk berhasil dihapus!'; alertType = 'success'; }
+            else if (error === 'invalid_input') { alertMsg = 'Data tidak valid!'; alertType = 'danger'; }
+            else if (error === 'gagal') { alertMsg = 'Gagal memproses data!'; alertType = 'danger'; }
+            else if (error === 'produk_terpakai') { alertMsg = 'Produk tidak bisa dihapus karena masih memiliki riwayat barang masuk!'; alertType = 'danger'; }
+        %>
+        <% if (alertMsg) { %>
+            <div class="alert alert-gas alert-gas-<%= alertType %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi <%= alertType === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
+                <%= alertMsg %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
         <!-- ADD PRODUCT FORM -->
         <div class="card-gas mb-4 reveal">
             <div class="card-header bg-gas-primary text-white">

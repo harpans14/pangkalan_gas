@@ -5,6 +5,7 @@ const app = express();
 
 const pangkalanRoutes = require('./routes/pangkalanRoutes');
 const pembeliRoutes = require('./routes/pembeliRoutes');
+const tabungRoutes = require('./routes/tabungRoutes');
 const authController = require('./controllers/authController');
 const { isLoggedIn, isRole } = require('./middleware/auth');
 
@@ -20,6 +21,23 @@ app.use(session({
     saveUninitialized: true
 }));
 
+app.use((req, res, next) => {
+    const originalRender = res.render.bind(res);
+    res.render = function(view, options, callback) {
+        if (typeof options === 'function') {
+            callback = options;
+            options = {};
+        }
+        options = options || {};
+        options.session = req.session || {};
+        options.username = (req.session && req.session.username) || 'Admin';
+        options.success = options.success !== undefined ? options.success : null;
+        options.error = options.error !== undefined ? options.error : null;
+        return originalRender(view, options, callback);
+    };
+    next();
+});
+
 app.get('/login', (req, res) => {
     res.render('login', { error: null });
 });
@@ -29,6 +47,7 @@ app.get('/logout', authController.logout);
 app.post('/pangkalan/daftar-pelanggan', isLoggedIn, isRole('pangkalan'), authController.registerPembeli);
 
 app.use('/pangkalan', isLoggedIn, pangkalanRoutes);
+app.use('/pangkalan', isLoggedIn, tabungRoutes);
 app.use('/pembeli', isLoggedIn, pembeliRoutes);
 
 app.get('/', (req, res) => {
