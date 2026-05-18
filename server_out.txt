@@ -1,0 +1,2 @@
+Server running on http://localhost:3000
+Login: http://localhost:3000/login

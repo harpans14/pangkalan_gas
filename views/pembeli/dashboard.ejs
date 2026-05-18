@@ -1,51 +1,269 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Dashboard Pembeli</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Pembeli - Pangkalan Gas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="bg-light">
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card mb-3 shadow-sm">
-                    <div class="card-body">
-                        <h5>Halo, <%= user.username %>!</h5>
-                        <p class="text-muted"><%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %></p>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Pembeli</small>
+    </div>
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link active" href="/pembeli/dashboard">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar"><%= user.username.charAt(0).toUpperCase() %></div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;"><%= user.username %></div>
+                <small class="text-muted"><%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %></small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+    <div class="main-content page-entrance">
+        <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Dashboard Pembeli</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-approved"><i class="bi bi-person"></i> <%= user.username %></span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <% if (locals.success) { %>
+            <div class="alert alert-gas alert-gas-success alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi bi-check-circle-fill"></i>
+                Pesanan berhasil dibuat! Silakan tunggu konfirmasi dari pangkalan.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <div class="row g-4">
+            <!-- LEFT: INFO PEMBELI -->
+            <div class="col-lg-4 reveal-left">
+                <div class="card-gas mb-4">
+                    <div class="card-body text-center">
+                        <div style="width:72px;height:72px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;margin:0 auto 1rem;">
+                            <%= user.username.charAt(0).toUpperCase() %>
+                        </div>
+                        <h5 class="fw-bold"><%= user.username %></h5>
+                        <span class="badge-gas <%= user.sub_role === 'rumahtangga' ? 'badge-pending' : 'badge-approved' %>">
+                            <%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %>
+                        </span>
                         <hr>
-                        <p>Sisa Kuota Minggu Ini: <strong><%= sisaKuota %> Tabung</strong></p>
-                        <p>Status Tabung: <strong><%= saldoTabung >= 0 ? 'Simpan: ' + saldoTabung : 'Pinjam: ' + Math.abs(saldoTabung) %></strong></p>
+                        <div class="text-start">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Sisa Kuota</span>
+                                <strong class="<%= sisaKuota > 0 ? 'text-gas-primary' : 'text-danger' %>">
+                                    <%= sisaKuota %> Tabung
+                                </strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Status Tabung</span>
+                                <strong class="<%= saldoTabung >= 0 ? 'text-gas-primary' : 'text-gas-accent' %>">
+                                    <%= saldoTabung >= 0 ? 'Simpan: ' + saldoTabung : 'Pinjam: ' + Math.abs(saldoTabung) %>
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUOTA PROGRESS -->
+                <div class="card-gas">
+                    <div class="card-header">
+                        <i class="bi bi-pie-chart me-2"></i>Kuota Mingguan
+                    </div>
+                    <div class="card-body">
+                        <% const limit = user.sub_role === 'rumahtangga' ? 1 : 3; %>
+                        <% const used = limit - sisaKuota; %>
+                        <% const pct = Math.round((used / limit) * 100); %>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Terpakai <%= used %> dari <%= limit %></small>
+                            <small class="fw-bold"><%= pct %>%</small>
+                        </div>
+                        <div class="progress" style="height:10px;border-radius:5px;">
+                            <div class="progress-bar <%= pct >= 100 ? 'bg-danger' : 'bg-success' %>" 
+                                 role="progressbar" 
+                                 style="width:<%= pct %>%" 
+                                 aria-valuenow="<%= pct %>" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-8">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white">Pesan Gas LPG 3Kg</div>
+            <!-- RIGHT: FORM PESAN + RIWAYAT -->
+            <div class="col-lg-8 reveal-right">
+                <!-- PRODUK CARD GRID -->
+                <div class="card-gas mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-box-seam me-2"></i>Produk Tersedia
+                    </div>
+                    <div class="card-body">
+                        <div class="product-grid">
+                            <% if (daftarProduk.length === 0) { %>
+                                <div class="empty-state">
+                                    <div class="empty-icon"><i class="bi bi-box"></i></div>
+                                    <h5>Belum Ada Produk</h5>
+                                    <p>Belum ada produk gas yang tersedia saat ini.</p>
+                                </div>
+                            <% } else { %>
+                                <% daftarProduk.forEach(p => { %>
+                                <div class="product-card">
+                                    <div class="product-image">
+                                        <i class="bi bi-fuel-pump"></i>
+                                    </div>
+                                    <div class="product-body">
+                                        <h6><%= p.nama %></h6>
+                                        <div class="product-price">Rp<%= p.harga.toLocaleString() %></div>
+                                        <div class="product-meta">
+                                            <span class="text-muted"><i class="bi bi-box-seam"></i> Stok</span>
+                                            <span class="badge-gas <%= p.stok > 10 ? 'badge-approved' : p.stok > 0 ? 'badge-pending' : 'badge-rejected' %>"><%= p.stok %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }) %>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PESAN GAS -->
+                <div class="card-gas mb-4">
+                    <div class="card-header" style="background:var(--primary);color:var(--white);">
+                        <i class="bi bi-cart-plus me-2"></i>Pesan Gas
+                    </div>
                     <div class="card-body">
                         <% if (sisaKuota <= 0) { %>
-                            <div class="alert alert-danger">Maaf, kuota mingguan Anda sudah habis.</div>
+                            <div class="alert alert-gas alert-gas-danger">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                Maaf, kuota mingguan Anda sudah habis. Silakan tunggu minggu depan.
+                            </div>
                         <% } else { %>
-                            <form action="/pembeli/pesan" method="POST">
-                                <input type="hidden" name="user_id" value="<%= user.id %>">
-                                <div class="mb-3">
-                                    <label>Jumlah Tabung (Maks: <%= sisaKuota %>)</label>
-                                    <input type="number" name="jumlah" class="form-control" max="<%= sisaKuota %>" min="1" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Metode</label>
-                                    <select name="metode" class="form-select">
-                                        <option value="ambil">Ambil di Pangkalan</option>
-                                        <option value="kirim">Kirim ke Alamat (Delivery)</option>
+                            <form action="/pembeli/pesan" method="POST" class="form-gas row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Pilih Produk</label>
+                                    <select name="produk_id" class="form-select" required>
+                                        <option value="">-- Pilih Produk --</option>
+                                        <% daftarProduk.forEach(p => { %>
+                                            <option value="<%= p.id %>"><%= p.nama %> - Rp<%= p.harga.toLocaleString() %> (Stok: <%= p.stok %>)</option>
+                                        <% }) %>
                                     </select>
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">Buat Pesanan</button>
+                                <div class="col-md-3">
+                                    <label class="form-label">Jumlah (Maks: <%= sisaKuota %>)</label>
+                                    <input type="number" name="jumlah" class="form-control" max="<%= sisaKuota %>" min="1" value="1" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Metode</label>
+                                    <select name="metode" class="form-select">
+                                        <option value="ambil">Ambil di Pangkalan</option>
+                                        <option value="kirim">Kirim (Delivery)</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-gas btn-gas-success btn-gas-lg w-100">
+                                        <i class="bi bi-cart-check"></i> Buat Pesanan
+                                    </button>
+                                </div>
                             </form>
                         <% } %>
+                    </div>
+                </div>
+
+                <!-- RIWAYAT TRANSAKSI -->
+                <div class="card-gas">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-clock-history me-2"></i>Riwayat Transaksi</span>
+                        <span class="badge badge-done"><%= riwayatTransaksi.length %> transaksi</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table-gas mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Produk</th>
+                                        <th>Jumlah</th>
+                                        <th>Harga</th>
+                                        <th>Total</th>
+                                        <th>Metode</th>
+                                        <th>Status</th>
+                                        <th>Tanggal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (riwayatTransaksi.length === 0) { %>
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="empty-state">
+                                                <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+                                                <h5>Belum Ada Transaksi</h5>
+                                                <p>Pesan gas untuk mulai mencatat riwayat transaksi.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <% } else { %>
+                                    <% riwayatTransaksi.forEach(t => { %>
+                                    <tr>
+                                        <td class="fw-bold"><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                        <td><%= t.jumlah_beli %></td>
+                                        <td><%= t.Produk ? 'Rp' + t.Produk.harga.toLocaleString() : '-' %></td>
+                                        <td class="fw-bold text-gas-primary"><%= t.Produk ? 'Rp' + (t.Produk.harga * t.jumlah_beli).toLocaleString() : '-' %></td>
+                                        <td>
+                                            <span class="badge-gas <%= t.metode === 'kirim' ? 'badge-approved' : 'badge-pending' %>">
+                                                <i class="bi <%= t.metode === 'kirim' ? 'bi-truck' : 'bi-walk' %>"></i>
+                                                <%= t.metode === 'kirim' ? 'Dikirim' : 'Diambil' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% let badgeClass = 'bg-secondary'; %>
+                                            <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
+                                            <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
+                                            <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
+                                            <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
+                                            <span class="badge-gas <%= badgeClass %>">
+                                                <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
+                                                <%= t.status %>
+                                            </span>
+                                        </td>
+                                        <td><%= new Date(t.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
+                                    </tr>
+                                    <% }) } %>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
 </body>
 </html>

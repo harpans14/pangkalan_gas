@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesanan Masuk - Pangkalan Gas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Admin</small>
+    </div>
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link active" href="/pangkalan/pesan-masuk">
+                <i class="bi bi-inbox"></i> Pesanan Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/kelola-produk">
+                <i class="bi bi-box"></i> Kelola Produk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/barang-masuk">
+                <i class="bi bi-arrow-down-circle"></i> Barang Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/laporan">
+                <i class="bi bi-file-earmark-bar-graph"></i> Laporan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/daftar-pelanggan">
+                <i class="bi bi-person-plus"></i> Daftar Pelanggan
+            </a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">A</div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;">Admin</div>
+                <small class="text-muted">Pangkalan</small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN CONTENT -->
+    <div class="main-content page-entrance">
+        <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Pesanan Masuk</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-pending"><i class="bi bi-clock"></i> <%= listPesanan.length %> menunggu</span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <!-- ALERTS -->
+        <%
+            let alertMsg = '';
+            let alertType = '';
+            if (success === 'acc_berhasil') { alertMsg = 'Pesanan berhasil di-ACC. Stok sudah dikurangi.'; alertType = 'success'; }
+            else if (success === 'tolak_berhasil') { alertMsg = 'Pesanan berhasil ditolak.'; alertType = 'success'; }
+            else if (error === 'transaksi_tidak_ditemukan') { alertMsg = 'Transaksi tidak ditemukan.'; alertType = 'danger'; }
+            else if (error === 'transaksi_sudah_diproses') { alertMsg = 'Pesanan sudah diproses sebelumnya.'; alertType = 'danger'; }
+            else if (error === 'produk_tidak_ditemukan') { alertMsg = 'Produk tidak ditemukan di database.'; alertType = 'danger'; }
+            else if (error === 'stok_tidak_cukup') { alertMsg = 'Stok tidak mencukupi untuk pesanan ini.'; alertType = 'danger'; }
+            else if (error === 'server_error') { alertMsg = 'Terjadi kesalahan server. Silakan coba lagi.'; alertType = 'danger'; }
+        %>
+        <% if (alertMsg) { %>
+            <div class="alert alert-gas alert-gas-<%= alertType %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi <%= alertType === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
+                <%= alertMsg %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- TABLE -->
+        <div class="card-gas reveal">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-inbox me-2"></i>Daftar Antrean Pesanan Gas</span>
+                <span class="badge bg-gas-primary"><%= listPesanan.length %> Pesanan</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-gas mb-0">
+                        <thead>
+                            <tr>
+                                <th>Pembeli</th>
+                                <th>Produk</th>
+                                <th>Jumlah</th>
+                                <th>Stok</th>
+                                <th>Metode</th>
+                                <th>Tanggal</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (listPesanan.length === 0) { %>
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+                                        <h5>Belum Ada Pesanan Masuk</h5>
+                                        <p>Belum ada pesanan dari pelanggan yang perlu diproses.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% } else { %>
+                            <% listPesanan.forEach(p => { %>
+                            <tr>
+                                <td>
+                                    <div class="fw-bold"><%= p.nama %></div>
+                                    <small class="text-muted"><%= p.alamat %></small>
+                                </td>
+                                <td><%= p.produk %></td>
+                                <td><strong><%= p.jumlah %></strong> Tabung</td>
+                                <td>
+                                    <span class="badge <%= p.stok_tersedia >= p.jumlah ? 'badge-approved' : 'badge-rejected' %>">
+                                        <i class="bi bi-box-seam"></i> <%= p.stok_tersedia %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge-gas <%= p.metode === 'kirim' ? 'badge-approved' : 'badge-pending' %>">
+                                        <i class="bi <%= p.metode === 'kirim' ? 'bi-truck' : 'bi-walk' %>"></i>
+                                        <%= p.metode === 'kirim' ? 'Dikirim' : 'Diambil' %>
+                                    </span>
+                                </td>
+                                <td><%= new Date(p.tanggal).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
+                                <td>
+                                    <div class="action-group justify-content-center">
+                                        <form action="/pangkalan/acc-proses" method="POST">
+                                            <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                            <button type="submit" class="btn btn-gas btn-gas-success btn-gas-sm">
+                                                <i class="bi bi-check-lg"></i> ACC
+                                            </button>
+                                        </form>
+                                        <form action="/pangkalan/tolak-proses" method="POST">
+                                            <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                            <button type="submit" class="btn btn-gas btn-gas-danger btn-gas-sm" onclick="return confirm('Yakin ingin menolak pesanan ini?')">
+                                                <i class="bi bi-x-lg"></i> Tolak
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% }) } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>

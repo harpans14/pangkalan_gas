@@ -1,16 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Pangkalan Gas App</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pangkalan Gas - Sistem Distribusi LPG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="d-flex align-items-center justify-content-center vh-100">
-    <div class="text-center">
-        <h1>Selamat Datang di Sistem Pangkalan Gas</h1>
-        <div class="mt-4">
-            <a href="/pangkalan/daftar-pelanggan" class="btn btn-primary">Masuk sebagai Pangkalan (Daftar Pelanggan)</a>
-            <button class="btn btn-outline-secondary">Masuk sebagai Pembeli (Soon)</button>
+<body class="page-entrance">
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-gas">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <span class="brand-icon"><i class="bi bi-fuel-pump"></i></span>
+            Pangkalan Gas
+        </a>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarLanding" style="color:white;font-size:1.5rem;">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarLanding">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                <li class="nav-item"><a class="nav-link" href="#features">Fitur</a></li>
+                <li class="nav-item"><a class="nav-link" href="#roles">Peran</a></li>
+                <% if (session && session.userId) { %>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<%= session.role === 'pangkalan' ? '/pangkalan/pesan-masuk' : '/pembeli/dashboard' %>">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                <% } else { %>
+                    <li class="nav-item"><a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-light btn-gas btn-gas-sm fw-bold text-gas-primary" href="/pangkalan/daftar-pelanggan">
+                            <i class="bi bi-person-plus"></i> Daftar
+                        </a>
+                    </li>
+                <% } %>
+            </ul>
         </div>
     </div>
+</nav>
+
+<!-- HERO SECTION -->
+<section class="hero-section">
+    <div class="container position-relative">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <h1>Sistem Distribusi Gas LPG<br>Pangkalan Gas</h1>
+                <p>Platform manajemen penjualan dan distribusi gas LPG yang memudahkan pangkalan dalam mengelola stok, pesanan, dan laporan penjualan secara efisien dan real-time.</p>
+                <div class="hero-buttons d-flex flex-wrap gap-3">
+                    <% if (session && session.userId) { %>
+                        <a href="<%= session.role === 'pangkalan' ? '/pangkalan/pesan-masuk' : '/pembeli/dashboard' %>" class="btn btn-light btn-gas btn-gas-lg fw-bold text-gas-primary">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    <% } else { %>
+                        <a href="/login" class="btn btn-light btn-gas btn-gas-lg fw-bold text-gas-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                        <a href="/pangkalan/daftar-pelanggan" class="btn btn-gas btn-gas-lg fw-bold" style="background:rgba(255,255,255,0.15);color:white;border:2px solid rgba(255,255,255,0.3);">
+                            <i class="bi bi-person-plus"></i> Daftar
+                        </a>
+                    <% } %>
+                </div>
+            </div>
+            <div class="col-lg-5 text-center d-none d-lg-block">
+                <div style="font-size:10rem;opacity:0.2;line-height:1;">⛽</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES SECTION -->
+<section class="features-section" id="features">
+    <div class="container">
+        <div class="text-center mb-5 reveal">
+            <h2>Mengapa Pilih Pangkalan Gas?</h2>
+            <p class="section-subtitle">Fitur unggulan yang memudahkan pengelolaan distribusi gas LPG Anda</p>
+        </div>
+        <div class="row g-4 reveal-stagger">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:var(--primary-light);color:var(--primary);">
+                        <i class="bi bi-cart-check"></i>
+                    </div>
+                    <h5>Pemesanan Mudah</h5>
+                    <p>Pelanggan dapat memesan gas dengan cepat melalui dashboard pembeli yang intuitif dan mudah digunakan.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:var(--secondary-light);color:var(--secondary);">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h5>Stok Terpantau</h5>
+                    <p>Pantau stok gas secara real-time. Setiap barang masuk langsung otomatis memperbarui stok.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:var(--accent-light);color:var(--accent);">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5>Transaksi Aman</h5>
+                    <p>Setiap pesanan melalui proses verifikasi dan persetujuan untuk memastikan keamanan transaksi.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:#ede9fe;color:#7c3aed;">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                    </div>
+                    <h5>Laporan Bulanan</h5>
+                    <p>Dapatkan laporan penjualan bulanan lengkap dengan rekap per produk yang bisa diunduh dalam format PDF.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ROLES SECTION -->
+<section class="roles-section" id="roles">
+    <div class="container">
+        <div class="text-center mb-5 reveal">
+            <h2>Peran Pengguna</h2>
+            <p class="section-subtitle">Tersedia dua peran utama dengan hak akses yang disesuaikan</p>
+        </div>
+        <div class="row g-4 justify-content-center reveal-stagger">
+            <div class="col-md-6 col-lg-5">
+                <div class="role-card">
+                    <div class="role-header" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));">
+                        <div class="role-icon"><i class="bi bi-shop"></i></div>
+                        <h5>Pangkalan (Admin)</h5>
+                    </div>
+                    <div class="role-body">
+                        <ul>
+                            <li><i class="bi bi-check-circle-fill"></i> Kelola produk dan stok gas</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Verifikasi dan setujui pesanan</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Catat barang masuk dan keluar</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Cetak laporan penjualan bulanan</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Daftarkan pelanggan baru</li>
+                        </ul>
+                        <% if (!(session && session.userId)) { %>
+                            <a href="/login" class="btn btn-gas btn-gas-primary w-100 mt-3">
+                                <i class="bi bi-box-arrow-in-right"></i> Login sebagai Pangkalan
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-5">
+                <div class="role-card">
+                    <div class="role-header" style="background:linear-gradient(135deg,var(--secondary),var(--secondary-dark));">
+                        <div class="role-icon"><i class="bi bi-person"></i></div>
+                        <h5>Pembeli</h5>
+                    </div>
+                    <div class="role-body">
+                        <ul>
+                            <li><i class="bi bi-check-circle-fill"></i> Lihat sisa kuota mingguan</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Pesan gas dengan mudah</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Pantau status pesanan</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Riwayat transaksi lengkap</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Pilih ambil atau kirim</li>
+                        </ul>
+                        <% if (!(session && session.userId)) { %>
+                            <a href="/pangkalan/daftar-pelanggan" class="btn btn-gas btn-gas-secondary w-100 mt-3">
+                                <i class="bi bi-person-plus"></i> Daftar sebagai Pembeli
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer-gas">
+    <div class="footer-top">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="footer-brand"><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</div>
+                    <p style="font-size:0.9rem;">Sistem distribusi gas LPG terpercaya untuk memudahkan pengelolaan penjualan, stok, dan laporan pangkalan gas di seluruh Indonesia.</p>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <h6>Navigasi</h6>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="/">Beranda</a>
+                        <a href="#features">Fitur</a>
+                        <a href="#roles">Peran</a>
+                        <a href="/login">Login</a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <h6>Layanan</h6>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="/pangkalan/daftar-pelanggan">Daftar Pelanggan</a>
+                        <a href="/login">Pesanan Gas</a>
+                        <a href="/login">Cek Stok</a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <h6>Kontak</h6>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="#"><i class="bi bi-geo-alt me-1"></i> Pangkalan Gas</a>
+                        <a href="#"><i class="bi bi-telephone me-1"></i> 0857-xxxx-xxxx</a>
+                        <a href="#"><i class="bi bi-envelope me-1"></i> info@pangkalan-gas.id</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    &copy; <%= new Date().getFullYear() %> Pangkalan Gas. All rights reserved.
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <span class="small">Sistem Distribusi LPG Terintegrasi</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
 </body>
 </html>

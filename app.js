@@ -3,44 +3,40 @@ const path = require('path');
 const session = require('express-session');
 const app = express();
 
-// 1. Import Rute
 const pangkalanRoutes = require('./routes/pangkalanRoutes');
-const pembeliRoutes = require('./routes/pembeliRoutes'); // Rute pembeli ditambahkan
+const pembeliRoutes = require('./routes/pembeliRoutes');
+const authController = require('./controllers/authController');
+const { isLoggedIn, isRole } = require('./middleware/auth');
 
-// 2. Konfigurasi EJS & Body Parser
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: false }));
-app.use(express.json()); 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 3. Konfigurasi Session
 app.use(session({
     secret: 'rahasia_pangkalan_gas',
     resave: false,
     saveUninitialized: true
 }));
 
-// 4. Import Models
-const db = require('./models');
+app.get('/login', (req, res) => {
+    res.render('login', { error: null });
+});
+app.post('/login', authController.login);
+app.get('/logout', authController.logout);
 
-// 5. Gunakan Rute
-app.use('/pangkalan', pangkalanRoutes);
-app.use('/pembeli', pembeliRoutes); // Rute pembeli diaktifkan
+app.post('/pangkalan/daftar-pelanggan', isLoggedIn, isRole('pangkalan'), authController.registerPembeli);
 
-// Route Utama/Landing Page
+app.use('/pangkalan', isLoggedIn, pangkalanRoutes);
+app.use('/pembeli', isLoggedIn, pembeliRoutes);
+
 app.get('/', (req, res) => {
-    res.render('index'); 
+    res.render('index', { session: req.session });
 });
 
-// 6. Jalankan Server & Sinkronisasi Database
 const PORT = 3000;
-db.sequelize.sync().then(() => {
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running on http://localhost:${PORT}`);
-        console.log(`📝 Daftar pelanggan: http://localhost:3000/pangkalan/daftar-pelanggan`);
-        console.log(`🛒 Dashboard pembeli: http://localhost:3000/pembeli/dashboard`);
-    });
-}).catch(err => {
-    console.error('Gagal koneksi database:', err);
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Login: http://localhost:3000/login`);
 });
