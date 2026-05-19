@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Tabung - Pangkalan Gas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Admin</small>
+    </div>
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/pesan-masuk"><i class="bi bi-inbox"></i> Pesanan Masuk</a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/kelola-produk"><i class="bi bi-box"></i> Kelola Produk</a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/barang-masuk"><i class="bi bi-arrow-down-circle"></i> Barang Masuk</a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link active" href="/pangkalan/tabung"><i class="bi bi-archive"></i> Manajemen Tabung</a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/laporan"><i class="bi bi-file-earmark-bar-graph"></i> Laporan</a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/daftar-pelanggan"><i class="bi bi-person-plus"></i> Daftar Pelanggan</a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar"><%= username.charAt(0).toUpperCase() %></div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;"><%= username %></div>
+                <small class="text-muted">Pangkalan</small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+        </div>
+    </div>
+</div>
+
+    <div class="main-content page-entrance">
+        <div class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Manajemen Tabung</h5>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <%
+                let alertMsg = '';
+                let alertType = '';
+                if (success === 'tambah') { alertMsg = 'Transaksi berhasil dicatat!'; alertType = 'success'; }
+                else if (success === 'edit') { alertMsg = 'Data berhasil diubah!'; alertType = 'success'; }
+                else if (success === 'hapus') { alertMsg = 'Data berhasil dihapus!'; alertType = 'success'; }
+                else if (success === 'selesai') { alertMsg = 'Status berhasil diperbarui!'; alertType = 'success'; }
+                else if (error === 'lengkapi_data') { alertMsg = 'Harap lengkapi semua data!'; alertType = 'danger'; }
+                else if (error === 'gagal') { alertMsg = 'Gagal memproses data!'; alertType = 'danger'; }
+                else if (error === 'tidak_ditemukan') { alertMsg = 'Data tidak ditemukan!'; alertType = 'danger'; }
+                else if (error === 'stok_kurang') { alertMsg = 'Stok tabung isi tidak mencukupi!'; alertType = 'danger'; }
+                else if (error === 'tidak_bisa_ubah') { alertMsg = 'Tidak bisa mengubah data yang sudah selesai!'; alertType = 'danger'; }
+                else if (error === 'sudah_selesai') { alertMsg = 'Transaksi ini sudah selesai sebelumnya!'; alertType = 'warning'; }
+            %>
+            <% if (alertMsg) { %>
+                <div class="alert alert-gas alert-gas-<%= alertType %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                    <i class="bi <%= alertType === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
+                    <%= alertMsg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-3 reveal-left">
+                    <div class="card-stat stat-teal">
+                        <div class="card-stat-icon"><i class="bi bi-box-seam"></i></div>
+                        <div class="card-stat-body">
+                            <div class="card-stat-value"><%= totalIsi %></div>
+                            <div class="card-stat-label">Tabung Isi</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 reveal-left">
+                    <div class="card-stat stat-amber">
+                        <div class="card-stat-icon"><i class="bi bi-box"></i></div>
+                        <div class="card-stat-body">
+                            <div class="card-stat-value"><%= totalKosong %></div>
+                            <div class="card-stat-label">Tabung Kosong</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 reveal-left">
+                    <div class="card-stat stat-green">
+                        <div class="card-stat-icon"><i class="bi bi-arrow-down-circle"></i></div>
+                        <div class="card-stat-body">
+                            <div class="card-stat-value"><%= totalTitip %></div>
+                            <div class="card-stat-label">Dititip Pelanggan</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 reveal-left">
+                    <div class="card-stat stat-red">
+                        <div class="card-stat-icon"><i class="bi bi-arrow-up-circle"></i></div>
+                        <div class="card-stat-body">
+                            <div class="card-stat-value"><%= totalPinjam %></div>
+                            <div class="card-stat-label">Dipinjam Pelanggan</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <% stok.forEach(s => { %>
+                <div class="col-md-4 reveal-scale">
+                    <div class="card-gas">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-fuel-pump me-2"></i>Tabung <%= s.jenis %></span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Jumlah Isi</span>
+                                <strong class="text-gas-primary"><%= s.jumlah_isi || 0 %></strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Jumlah Kosong</span>
+                                <strong class="text-gas-accent"><%= s.jumlah_kosong || 0 %></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+
+            <% if (belumKembali.length > 0) { %>
+            <div class="alert alert-gas alert-gas-warning alert-dismissible fade show reveal" role="alert" data-auto-dismiss="10000">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong><%= belumKembali.length %> tabung</strong> masih dipinjam pelanggan dan belum dikembalikan!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <% } %>
+
+            <div class="card-gas mb-4 reveal">
+                <div class="card-header bg-gas-primary text-white">
+                    <i class="bi bi-plus-circle me-2"></i>Catat Transaksi Tabung
+                </div>
+                <div class="card-body">
+                    <form action="/pangkalan/tabung/tambah" method="POST" class="row g-3 form-gas">
+                        <div class="col-md-2">
+                            <label class="form-label">Tipe <span class="text-danger">*</span></label>
+                            <select name="tipe" class="form-select" required>
+                                <option value="">-- Pilih --</option>
+                                <option value="titip">Titip (Simpan)</option>
+                                <option value="pinjam">Pinjam (Ambil)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nama Pelanggan <span class="text-danger">*</span></label>
+                            <input type="text" name="nama_pelanggan" class="form-control" required placeholder="Nama pelanggan">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Jenis Tabung <span class="text-danger">*</span></label>
+                            <select name="jenis_tabung" class="form-select" required>
+                                <option value="">-- Pilih --</option>
+                                <option value="3Kg">3Kg</option>
+                                <option value="5Kg">5Kg</option>
+                                <option value="12Kg">12Kg</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Jumlah <span class="text-danger">*</span></label>
+                            <input type="number" name="jumlah" class="form-control" min="1" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tanggal <span class="text-danger">*</span></label>
+                            <input type="date" name="tanggal" class="form-control" required value="<%= new Date().toISOString().split('T')[0] %>">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-gas btn-gas-primary w-100">
+                                <i class="bi bi-save"></i> Simpan
+                            </button>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Keterangan</label>
+                            <textarea name="keterangan" class="form-control" rows="1" placeholder="Opsional"></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card-gas reveal">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list me-2"></i>Riwayat Transaksi Tabung</span>
+                    <span class="badge badge-done"><%= data.length %> data</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table-gas mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tipe</th>
+                                    <th>Pelanggan</th>
+                                    <th>Jenis</th>
+                                    <th>Jumlah</th>
+                                    <th>Tanggal</th>
+                                    <th>Status</th>
+                                    <th>Ket</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (data.length === 0) { %>
+                                <tr>
+                                    <td colspan="8">
+                                        <div class="empty-state">
+                                            <div class="empty-icon"><i class="bi bi-archive"></i></div>
+                                            <h5>Belum Ada Data</h5>
+                                            <p>Catat transaksi tabung terlebih dahulu.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <% } else { %>
+                                <% data.forEach(d => { %>
+                                <tr>
+                                    <td>
+                                        <% if (d.tipe === 'titip') { %>
+                                            <span class="badge-gas badge-done"><i class="bi bi-arrow-down-circle"></i> Titip</span>
+                                        <% } else { %>
+                                            <span class="badge-gas badge-acc"><i class="bi bi-arrow-up-circle"></i> Pinjam</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="fw-bold"><%= d.nama_pelanggan %></td>
+                                    <td><span class="badge-gas badge-pending"><%= d.jenis_tabung %></span></td>
+                                    <td><%= d.jumlah %></td>
+                                    <td><%= new Date(d.tanggal).toLocaleDateString('id-ID') %></td>
+                                    <td>
+                                        <% if (d.status === 'aktif') { %>
+                                            <span class="badge-gas badge-pending"><i class="bi bi-clock"></i> Aktif</span>
+                                        <% } else { %>
+                                            <span class="badge-gas badge-approved"><i class="bi bi-check-circle"></i> Selesai</span>
+                                        <% } %>
+                                    </td>
+                                    <td><%= d.keterangan || '-' %></td>
+                                    <td>
+                                        <div class="action-group justify-content-center">
+                                            <% if (d.status === 'aktif') { %>
+                                            <button class="btn btn-gas btn-gas-success btn-gas-sm" data-bs-toggle="modal" data-bs-target="#selesaiModal<%= d.id %>" title="Selesaikan">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                            <button class="btn btn-gas btn-gas-primary btn-gas-sm" data-bs-toggle="modal" data-bs-target="#editModal<%= d.id %>" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <% } %>
+                                            <button class="btn btn-gas btn-gas-danger btn-gas-sm" data-bs-toggle="modal" data-bs-target="#hapusModal<%= d.id %>" title="Hapus">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<% data.forEach(d => { %>
+<% if (d.status === 'aktif') { %>
+<div class="modal fade modal-gas" id="selesaiModal<%= d.id %>" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gas-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-lg me-2"></i>
+                    <%= d.tipe === 'titip' ? 'Ambil Titipan' : 'Kembalikan Pinjaman' %> Tabung
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/pangkalan/tabung/selesai/<%= d.id %>" method="POST">
+                <div class="modal-body">
+                    <p>
+                        <% if (d.tipe === 'titip') { %>
+                            Konfirmasi <strong><%= d.nama_pelanggan %></strong> mengambil <strong><%= d.jumlah %></strong> tabung <strong><%= d.jenis_tabung %></strong> yang dititipkan?
+                        <% } else { %>
+                            Konfirmasi <strong><%= d.nama_pelanggan %></strong> mengembalikan <strong><%= d.jumlah %></strong> tabung <strong><%= d.jenis_tabung %></strong> yang dipinjam?
+                        <% } %>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-gas btn-gas-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-gas btn-gas-success"><i class="bi bi-check-lg"></i> Konfirmasi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade modal-gas" id="editModal<%= d.id %>" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gas-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Transaksi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/pangkalan/tabung/edit/<%= d.id %>" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipe</label>
+                        <select name="tipe" class="form-select" required>
+                            <option value="titip" <%= d.tipe === 'titip' ? 'selected' : '' %>>Titip (Simpan)</option>
+                            <option value="pinjam" <%= d.tipe === 'pinjam' ? 'selected' : '' %>>Pinjam (Ambil)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Pelanggan</label>
+                        <input type="text" name="nama_pelanggan" class="form-control" value="<%= d.nama_pelanggan %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jenis Tabung</label>
+                        <select name="jenis_tabung" class="form-select" required>
+                            <option value="3Kg" <%= d.jenis_tabung === '3Kg' ? 'selected' : '' %>>3Kg</option>
+                            <option value="5Kg" <%= d.jenis_tabung === '5Kg' ? 'selected' : '' %>>5Kg</option>
+                            <option value="12Kg" <%= d.jenis_tabung === '12Kg' ? 'selected' : '' %>>12Kg</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jumlah</label>
+                        <input type="number" name="jumlah" class="form-control" value="<%= d.jumlah %>" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tanggal</label>
+                        <input type="date" name="tanggal" class="form-control" value="<%= d.tanggal %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="aktif" <%= d.status === 'aktif' ? 'selected' : '' %>>Aktif</option>
+                            <option value="selesai" <%= d.status === 'selesai' ? 'selected' : '' %>>Selesai</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Keterangan</label>
+                        <textarea name="keterangan" class="form-control" rows="2"><%= d.keterangan || '' %></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-gas btn-gas-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-gas btn-gas-primary"><i class="bi bi-save"></i> Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<div class="modal fade modal-gas" id="hapusModal<%= d.id %>" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gas-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Hapus Data</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/pangkalan/tabung/hapus/<%= d.id %>" method="POST">
+                <div class="modal-body">
+                    <p>Yakin hapus transaksi <strong><%= d.nama_pelanggan %></strong>?</p>
+                    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Stok tabung akan disesuaikan otomatis.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-gas btn-gas-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-gas btn-gas-danger"><i class="bi bi-trash"></i> Hapus</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<% }) %>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>

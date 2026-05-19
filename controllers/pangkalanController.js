@@ -1,7 +1,8 @@
-const { Transaksi, User, Produk, BarangMasuk } = require('../models');
+const { Transaksi, User, Produk, BarangMasuk, TabungStok } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
+const { extractJenisDariNama, syncProdukStok, cariAtauBuatTabungStok } = require('../utils/stokHelper');
 
 exports.getPesananMasuk = async (req, res) => {
     try {
@@ -62,11 +63,22 @@ exports.accPesanan = async (req, res) => {
             return res.redirect('/pangkalan/pesan-masuk?error=stok_tidak_cukup');
         }
 
-        produk.stok -= transaksi.jumlah_beli;
+        const jenis = extractJenisDariNama(produk.nama);
+        if (jenis) {
+            const tabungStok = await cariAtauBuatTabungStok(jenis);
+            if (tabungStok.jumlah_isi < transaksi.jumlah_beli) {
+                return res.redirect('/pangkalan/pesan-masuk?error=stok_tidak_cukup');
+            }
+            tabungStok.jumlah_isi -= transaksi.jumlah_beli;
+            await tabungStok.save();
+            await syncProdukStok(jenis);
+        } else {
+            produk.stok -= transaksi.jumlah_beli;
+            await produk.save();
+        }
+
         transaksi.status = 'disetujui';
         transaksi.tanda_tangan = ttd_data || null;
-
-        await produk.save();
         await transaksi.save();
 
         return res.redirect('/pangkalan/pesan-masuk?success=acc_berhasil');
@@ -104,25 +116,54 @@ exports.tolakPesanan = async (req, res) => {
 };
 
 exports.kelolaProduk = async (req, res) => {
-    const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
-    res.render('pangkalan/kelola_produk', { produk });
+    try {
+        const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
+        res.render('pangkalan/kelola_produk', { produk });
+    } catch (error) {
+        console.error("ERROR KELOLA PRODUK:", error);
+        res.status(500).send("Gagal memuat produk: " + error.message);
+    }
 };
 
 exports.tambahProduk = async (req, res) => {
-    const { nama, harga, stok } = req.body;
-    await Produk.create({
-        nama,
-        harga,
-        stok: stok || 0,
-        createdBy: req.session.userId
-    });
-    res.redirect('/pangkalan/kelola-produk');
+    try {
+        const { nama, harga, stok } = req.body;
+        if (!nama || !harga) {
+            return res.redirect('/pangkalan/kelola-produk?error=invalid_input');
+        }
+        const newProduk = await Produk.create({
+            nama,
+            harga: parseInt(harga) || 0,
+            stok: parseInt(stok) || 0,
+            createdBy: req.session.userId
+        });
+
+        const jenis = extractJenisDariNama(nama);
+        if (jenis) {
+            const tabungStok = await cariAtauBuatTabungStok(jenis);
+            await syncProdukStok(jenis, newProduk);
+        }
+
+        res.redirect('/pangkalan/kelola-produk?success=tambah');
+    } catch (error) {
+        console.error("ERROR TAMBAH PRODUK:", error);
+        res.redirect('/pangkalan/kelola-produk?error=gagal');
+    }
 };
 
 exports.hapusProduk = async (req, res) => {
-    const { id } = req.params;
-    await Produk.destroy({ where: { id, createdBy: req.session.userId } });
-    res.redirect('/pangkalan/kelola-produk');
+    try {
+        const { id } = req.params;
+        const terkait = await BarangMasuk.count({ where: { produk_id: id } });
+        if (terkait > 0) {
+            return res.redirect('/pangkalan/kelola-produk?error=produk_terpakai');
+        }
+        await Produk.destroy({ where: { id, createdBy: req.session.userId } });
+        res.redirect('/pangkalan/kelola-produk?success=hapus');
+    } catch (error) {
+        console.error("ERROR HAPUS PRODUK:", error);
+        res.redirect('/pangkalan/kelola-produk?error=gagal');
+    }
 };
 
 exports.getBarangMasuk = async (req, res) => {
@@ -151,7 +192,8 @@ exports.tambahBarangMasuk = async (req, res) => {
     try {
         const { produk_id, jumlah, keterangan, tanggal } = req.body;
 
-        if (!produk_id || !jumlah || jumlah <= 0) {
+        const jml = parseInt(jumlah);
+        if (!produk_id || isNaN(jml) || jml <= 0) {
             return res.redirect('/pangkalan/barang-masuk?error=invalid_input');
         }
 
@@ -164,14 +206,22 @@ exports.tambahBarangMasuk = async (req, res) => {
 
         await BarangMasuk.create({
             produk_id,
-            jumlah: parseInt(jumlah),
+            jumlah: jml,
             keterangan: keterangan || null,
             tanggal: tgl,
             createdBy: req.session.userId
         });
 
-        produk.stok += parseInt(jumlah);
-        await produk.save();
+        const jenis = extractJenisDariNama(produk.nama);
+        if (jenis) {
+            const tabungStok = await cariAtauBuatTabungStok(jenis);
+            tabungStok.jumlah_isi = (tabungStok.jumlah_isi || 0) + jml;
+            await tabungStok.save();
+            await syncProdukStok(jenis);
+        } else {
+            produk.stok += jml;
+            await produk.save();
+        }
 
         return res.redirect('/pangkalan/barang-masuk?success=tambah_berhasil');
     } catch (error) {
@@ -193,19 +243,64 @@ exports.editBarangMasuk = async (req, res) => {
             return res.redirect('/pangkalan/barang-masuk?error=not_found');
         }
 
-        const selisih = parseInt(jumlah) - barang.jumlah;
+        const oldJumlah = barang.jumlah;
+        const oldProdukId = barang.produk_id;
+        const newJumlah = parseInt(jumlah);
+        const newProdukId = parseInt(produk_id);
+        if (isNaN(newJumlah) || newJumlah < 0 || isNaN(newProdukId)) {
+            return res.redirect('/pangkalan/barang-masuk?error=invalid_input');
+        }
 
-        barang.produk_id = produk_id;
-        barang.jumlah = parseInt(jumlah);
+        if (oldProdukId !== newProdukId) {
+            const oldProduk = await Produk.findByPk(oldProdukId);
+            if (oldProduk) {
+                const oldJenis = extractJenisDariNama(oldProduk.nama);
+                if (oldJenis) {
+                    const oldStok = await cariAtauBuatTabungStok(oldJenis);
+                    oldStok.jumlah_isi = Math.max(0, (oldStok.jumlah_isi || 0) - oldJumlah);
+                    await oldStok.save();
+                    await syncProdukStok(oldJenis);
+                } else {
+                    oldProduk.stok = Math.max(0, (oldProduk.stok || 0) - oldJumlah);
+                    await oldProduk.save();
+                }
+            }
+
+            const newProduk = await Produk.findByPk(newProdukId);
+            if (newProduk) {
+                const newJenis = extractJenisDariNama(newProduk.nama);
+                if (newJenis) {
+                    const newStok = await cariAtauBuatTabungStok(newJenis);
+                    newStok.jumlah_isi = (newStok.jumlah_isi || 0) + newJumlah;
+                    await newStok.save();
+                    await syncProdukStok(newJenis);
+                } else {
+                    newProduk.stok = (newProduk.stok || 0) + newJumlah;
+                    await newProduk.save();
+                }
+            }
+        } else {
+            const produk = await Produk.findByPk(oldProdukId);
+            if (produk) {
+                const selisih = newJumlah - oldJumlah;
+                const jenis = extractJenisDariNama(produk.nama);
+                if (jenis) {
+                    const tabungStok = await cariAtauBuatTabungStok(jenis);
+                    tabungStok.jumlah_isi = Math.max(0, (tabungStok.jumlah_isi || 0) + selisih);
+                    await tabungStok.save();
+                    await syncProdukStok(jenis);
+                } else {
+                    produk.stok = Math.max(0, (produk.stok || 0) + selisih);
+                    await produk.save();
+                }
+            }
+        }
+
+        barang.produk_id = newProdukId;
+        barang.jumlah = newJumlah;
         barang.keterangan = keterangan || null;
         barang.tanggal = tanggal || barang.tanggal;
         await barang.save();
-
-        const produk = await Produk.findByPk(barang.produk_id);
-        if (produk) {
-            produk.stok += selisih;
-            await produk.save();
-        }
 
         return res.redirect('/pangkalan/barang-masuk?success=edit_berhasil');
     } catch (error) {
@@ -228,9 +323,16 @@ exports.hapusBarangMasuk = async (req, res) => {
 
         const produk = await Produk.findByPk(barang.produk_id);
         if (produk) {
-            produk.stok -= barang.jumlah;
-            if (produk.stok < 0) produk.stok = 0;
-            await produk.save();
+            const jenis = extractJenisDariNama(produk.nama);
+            if (jenis) {
+                const tabungStok = await cariAtauBuatTabungStok(jenis);
+                tabungStok.jumlah_isi = Math.max(0, (tabungStok.jumlah_isi || 0) - barang.jumlah);
+                await tabungStok.save();
+                await syncProdukStok(jenis);
+            } else {
+                produk.stok = Math.max(0, (produk.stok || 0) - barang.jumlah);
+                await produk.save();
+            }
         }
 
         await barang.destroy();

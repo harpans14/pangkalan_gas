@@ -36,6 +36,11 @@
             </a>
         </div>
         <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/tabung">
+                <i class="bi bi-archive"></i> Manajemen Tabung
+            </a>
+        </div>
+        <div class="nav-item">
             <a class="nav-link" href="/pangkalan/laporan">
                 <i class="bi bi-file-earmark-bar-graph"></i> Laporan
             </a>
@@ -48,9 +53,9 @@
     </div>
     <div class="sidebar-footer">
         <div class="user-info">
-            <div class="user-avatar">A</div>
+            <div class="user-avatar"><%= username.charAt(0).toUpperCase() %></div>
             <div>
-                <div style="font-weight:600;font-size:0.9rem;">Admin</div>
+                <div style="font-weight:600;font-size:0.9rem;"><%= username %></div>
                 <small class="text-muted">Pangkalan</small>
             </div>
             <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
