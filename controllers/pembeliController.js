@@ -1,5 +1,6 @@
 const { User, Transaksi, LogTabung, Produk } = require('../models');
 const { Op } = require('sequelize');
+const bcrypt = require('bcrypt');
 
 exports.getDashboard = async (req, res) => {
     try {
@@ -43,6 +44,42 @@ exports.getDashboard = async (req, res) => {
     } catch (error) {
         console.error("EROR DASHBOARD:", error);
         res.status(500).send("Detail Error Dashboard: " + error.message);
+    }
+};
+
+exports.getEditProfil = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.session.userId);
+        if (!user) {
+            return res.status(404).send("User tidak ditemukan!");
+        }
+        res.render('pembeli/edit_profil', { user });
+    } catch (error) {
+        res.status(500).send("Terjadi kesalahan: " + error.message);
+    }
+};
+
+exports.updateProfil = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const { username, password, alamat } = req.body;
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).send("User tidak ditemukan!");
+        }
+        user.username = username;
+        user.alamat = alamat;
+        if (password && password.length >= 6) {
+            user.password = await bcrypt.hash(password, 10);
+        }
+        await user.save();
+        req.session.username = username;
+        res.redirect('/pembeli/edit-profil?success=true');
+    } catch (error) {
+        res.status(500).render('pembeli/edit_profil', {
+            error: "Terjadi kesalahan: " + error.message,
+            user: { username: req.body.username, alamat: req.body.alamat }
+        });
     }
 };
 
