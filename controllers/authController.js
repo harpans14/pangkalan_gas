@@ -5,6 +5,10 @@ exports.registerPembeli = async (req, res) => {
     try {
         const { username, password, no_ktp, sub_role, alamat } = req.body;
 
+        if (!/^\d{16}$/.test(no_ktp)) {
+            return res.send("No KTP harus 16 digit angka!");
+        }
+
         const cekUser = await User.findOne({ where: { no_ktp } });
         if (cekUser) {
             return res.send("Gagal: No KTP sudah terdaftar di sistem!");
@@ -62,6 +66,10 @@ exports.login = async (req, res) => {
 exports.registerPembeliPublic = async (req, res) => {
     try {
         const { username, password, no_ktp, sub_role, alamat } = req.body;
+
+        if (!/^\d{16}$/.test(no_ktp)) {
+            return res.render('daftar', { error: 'No KTP harus 16 digit angka!' });
+        }
 
         const cekUser = await User.findOne({ where: { no_ktp } });
         if (cekUser) {

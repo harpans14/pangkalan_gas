@@ -44,7 +44,7 @@
                 <label class="form-label">No KTP (16 Digit)</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-credit-card text-gas-primary"></i></span>
-                    <input type="text" name="no_ktp" class="form-control" placeholder="Nomor KTP 16 digit" maxlength="16" required>
+                    <input type="text" name="no_ktp" class="form-control" placeholder="Nomor KTP 16 digit" minlength="16" maxlength="16" pattern="[0-9]{16}" title="Harus 16 digit angka" oninput="this.value=this.value.replace(/\D/g,'')" required>
                 </div>
             </div>
             <div class="mb-3">
