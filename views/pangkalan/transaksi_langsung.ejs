@@ -87,6 +87,10 @@
             let alertType = '';
             if (success === 'transaksi_berhasil') { alertMsg = 'Transaksi berhasil dicatat!'; alertType = 'success'; }
             else if (error === 'pelanggan_tidak_ditemukan') { alertMsg = 'Pelanggan dengan NIK tersebut tidak ditemukan.'; alertType = 'danger'; }
+            else if (error === 'invalid_input') { alertMsg = 'Data transaksi tidak valid!'; alertType = 'danger'; }
+            else if (error === 'produk_tidak_ditemukan') { alertMsg = 'Produk tidak ditemukan.'; alertType = 'danger'; }
+            else if (error === 'stok_tidak_cukup') { alertMsg = 'Stok produk tidak mencukupi untuk jumlah tersebut.'; alertType = 'danger'; }
+            else if (error === 'kuota_habis') { alertMsg = 'Kuota mingguan pelanggan sudah habis!'; alertType = 'warning'; }
             else if (error === 'server_error') { alertMsg = 'Terjadi kesalahan server. Silakan coba lagi.'; alertType = 'danger'; }
         %>
         <% if (alertMsg) { %>
@@ -211,6 +215,53 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- TRANSACTION FORM -->
+                <% if (sisaJatah > 0 && produkList.length > 0) { %>
+                <div class="card-gas mb-4 reveal">
+                    <div class="card-header bg-gas-success text-white">
+                        <i class="bi bi-cart-plus me-2"></i>Buat Transaksi Langsung
+                    </div>
+                    <div class="card-body">
+                        <form action="/pangkalan/transaksi-langsung/proses" method="POST" class="row g-3 align-items-end form-gas">
+                            <input type="hidden" name="user_id" value="<%= pelanggan.id %>">
+                            <div class="col-md-5">
+                                <label class="form-label">Pilih Produk</label>
+                                <select name="produk_id" class="form-select form-select-lg" required>
+                                    <option value="">-- Pilih Produk --</option>
+                                    <% produkList.forEach(p => { %>
+                                        <option value="<%= p.id %>" <%= p.stok <= 0 ? 'disabled' : '' %>>
+                                            <%= p.nama %> - Rp <%= (p.harga || 0).toLocaleString() %> (Stok: <%= p.stok %>)
+                                        </option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Jumlah Tabung</label>
+                                <input type="number" name="jumlah_beli" class="form-control form-control-lg" min="1" max="<%= sisaJatah %>" placeholder="Maks <%= sisaJatah %>" required>
+                                <small class="text-muted">Sisa kuota: <strong><%= sisaJatah %></strong> tabung</small>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-gas btn-gas-success btn-lg w-100">
+                                    <i class="bi bi-check-circle"></i> Proses Transaksi
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <% } else if (sisaJatah <= 0 && found) { %>
+                <div class="alert alert-gas alert-gas-warning alert-dismissible fade show reveal" role="alert" data-auto-dismiss="8000">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Kuota mingguan pelanggan ini sudah habis (<strong><%= totalMingguIni %></strong>/<strong><%= maksJatah %></strong> tabung). Tidak dapat melakukan transaksi.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } else if (produkList.length === 0 && found) { %>
+                <div class="alert alert-gas alert-gas-warning alert-dismissible fade show reveal" role="alert" data-auto-dismiss="8000">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Belum ada produk yang tersedia. Silakan tambah produk terlebih dahulu.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
 
                 <!-- RECENT TRANSACTIONS -->
                 <div class="card-gas reveal">

@@ -21,6 +21,7 @@ router.get('/laporan', pangkalanController.laporanPenjualan);
 router.get('/laporan/pdf', pangkalanController.downloadLaporanPDF);
 
 router.get('/transaksi-langsung', pangkalanController.transaksiLangsung);
+router.post('/transaksi-langsung/proses', pangkalanController.prosesTransaksiLangsung);
 
 router.get('/daftar-pelanggan', pangkalanController.daftarPelanggan);
 router.post('/edit-pelanggan/:id', pangkalanController.editPelanggan);

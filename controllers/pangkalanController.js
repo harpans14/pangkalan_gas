@@ -472,6 +472,8 @@ exports.transaksiLangsung = async (req, res) => {
             }
         }
 
+        const produkList = await Produk.findAll({ where: { createdBy: req.session.userId } });
+
         const success = req.query.success || null;
         const error = req.query.error || null;
 
@@ -484,6 +486,7 @@ exports.transaksiLangsung = async (req, res) => {
             cariKtp: no_ktp || '',
             found,
             searched,
+            produkList,
             success,
             error,
             formatRupiah,
@@ -492,6 +495,83 @@ exports.transaksiLangsung = async (req, res) => {
     } catch (error) {
         console.error("ERROR TRANSAKSI LANGSUNG:", error);
         res.status(500).send("Gagal memuat halaman: " + error.message);
+    }
+};
+
+exports.prosesTransaksiLangsung = async (req, res) => {
+    try {
+        const { user_id, produk_id, jumlah_beli } = req.body;
+
+        if (!user_id || !produk_id || !jumlah_beli || parseInt(jumlah_beli) <= 0) {
+            return res.redirect('/pangkalan/transaksi-langsung?error=invalid_input');
+        }
+
+        const pelanggan = await User.findByPk(user_id);
+        if (!pelanggan || pelanggan.role !== 'pembeli') {
+            return res.redirect('/pangkalan/transaksi-langsung?error=pelanggan_tidak_ditemukan');
+        }
+
+        const produk = await Produk.findByPk(produk_id);
+        if (!produk) {
+            return res.redirect('/pangkalan/transaksi-langsung?error=produk_tidak_ditemukan');
+        }
+
+        const jml = parseInt(jumlah_beli);
+
+        if (produk.stok < jml) {
+            return res.redirect('/pangkalan/transaksi-langsung?error=stok_tidak_cukup&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+        }
+
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        monday.setHours(0, 0, 0, 0);
+
+        const transMingguIni = await Transaksi.findAll({
+            where: {
+                user_id: pelanggan.id,
+                status: { [Op.in]: ['ACC', 'disetujui', 'selesai'] },
+                createdAt: { [Op.gte]: monday }
+            }
+        });
+        const totalMingguIni = transMingguIni.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+        const maksJatah = pelanggan.sub_role === 'rumahtangga' ? 1 : pelanggan.sub_role === 'usaha_mikro' ? 3 : 0;
+        const sisaJatah = Math.max(0, maksJatah - totalMingguIni);
+
+        if (jml > sisaJatah) {
+            return res.redirect('/pangkalan/transaksi-langsung?error=kuota_habis&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+        }
+
+        const jenis = require('../utils/stokHelper').extractJenisDariNama(produk.nama);
+        if (jenis) {
+            const { cariAtauBuatTabungStok, syncProdukStok } = require('../utils/stokHelper');
+            const tabungStok = await cariAtauBuatTabungStok(jenis);
+            if (tabungStok.jumlah_isi < jml) {
+                return res.redirect('/pangkalan/transaksi-langsung?error=stok_tidak_cukup&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+            }
+            tabungStok.jumlah_isi -= jml;
+            await tabungStok.save();
+            await syncProdukStok(jenis);
+        } else {
+            produk.stok -= jml;
+            await produk.save();
+        }
+
+        await Transaksi.create({
+            user_id: pelanggan.id,
+            produk_id: produk.id,
+            jumlah_beli: jml,
+            metode: 'ambil',
+            status: 'selesai',
+            tanggal: new Date()
+        });
+
+        return res.redirect('/pangkalan/transaksi-langsung?success=transaksi_berhasil&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+    } catch (error) {
+        console.error("ERROR PROSES TRANSAKSI LANGSUNG:", error);
+        return res.redirect('/pangkalan/transaksi-langsung?error=server_error');
     }
 };
 
