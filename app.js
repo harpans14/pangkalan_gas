@@ -39,10 +39,19 @@ app.use((req, res, next) => {
 });
 
 app.get('/login', (req, res) => {
-    res.render('login', { error: null });
+    let error = null;
+    if (req.query.register === 'success') {
+        error = 'Pendaftaran berhasil! Silakan login.';
+    }
+    res.render('login', { error });
 });
 app.post('/login', authController.login);
 app.get('/logout', authController.logout);
+
+app.get('/daftar', (req, res) => {
+    res.render('daftar', { error: null });
+});
+app.post('/daftar', authController.registerPembeliPublic);
 
 app.post('/pangkalan/daftar-pelanggan', isLoggedIn, isRole('pangkalan'), authController.registerPembeli);
 
