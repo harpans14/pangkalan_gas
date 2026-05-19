@@ -37,16 +37,23 @@ exports.getDashboard = async (req, res) => {
 
         const daftarProduk = await Produk.findAll();
 
-        const riwayatTransaksi = await Transaksi.findAll({
+        const page = parseInt(req.query.page) || 1;
+        const limit = 6;
+        const offset = (page - 1) * limit;
+
+        const { count: totalItems, rows: riwayatTransaksi } = await Transaksi.findAndCountAll({
             where: { user_id: userId },
             include: [{ model: Produk }],
             order: [['createdAt', 'DESC']],
-            limit: 10
+            limit,
+            offset
         });
+
+        const totalPages = Math.ceil(totalItems / limit);
 
         const success = req.query.success || null;
         const error = req.query.error || null;
-        res.render('pembeli/dashboard', { user, saldoTabung, daftarProduk, riwayatTransaksi, success, error, sudahBeli3Kg, produk3Kg });
+        res.render('pembeli/dashboard', { user, saldoTabung, daftarProduk, riwayatTransaksi, success, error, sudahBeli3Kg, produk3Kg, currentPage: page, totalPages, totalItems });
     } catch (error) {
         console.error("EROR DASHBOARD:", error);
         res.status(500).send("Detail Error Dashboard: " + error.message);
