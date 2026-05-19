@@ -365,7 +365,7 @@ exports.daftarPelanggan = async (req, res) => {
 exports.editPelanggan = async (req, res) => {
     try {
         const { id } = req.params;
-        const { username, password, no_ktp, sub_role, alamat } = req.body;
+        const { username, password, no_ktp, sub_role, alamat, nomor_hp } = req.body;
 
         const pelanggan = await User.findByPk(id);
         if (!pelanggan || pelanggan.role !== 'pembeli') {
@@ -387,6 +387,7 @@ exports.editPelanggan = async (req, res) => {
         pelanggan.no_ktp = no_ktp;
         pelanggan.sub_role = sub_role;
         pelanggan.alamat = alamat;
+        pelanggan.nomor_hp = nomor_hp || null;
 
         if (password && password.trim() !== '') {
             pelanggan.password = await bcrypt.hash(password, 10);
@@ -416,6 +417,81 @@ exports.hapusPelanggan = async (req, res) => {
     } catch (error) {
         console.error("ERROR HAPUS PELANGGAN:", error);
         return res.redirect('/pangkalan/daftar-pelanggan?error=server_error');
+    }
+};
+
+exports.transaksiLangsung = async (req, res) => {
+    try {
+        const { no_ktp } = req.query;
+        let pelanggan = null;
+        let riwayatTransaksi = [];
+        let totalMingguIni = 0;
+        let maksJatah = 0;
+        let sisaJatah = 0;
+        let found = false;
+        let searched = !!no_ktp;
+
+        if (no_ktp) {
+            pelanggan = await User.findOne({
+                where: { no_ktp, role: 'pembeli' },
+                attributes: { exclude: ['password'] }
+            });
+
+            if (pelanggan) {
+                found = true;
+
+                if (pelanggan.sub_role === 'rumahtangga') {
+                    maksJatah = 1;
+                } else if (pelanggan.sub_role === 'usaha_mikro') {
+                    maksJatah = 3;
+                }
+
+                const now = new Date();
+                const dayOfWeek = now.getDay();
+                const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - diff);
+                monday.setHours(0, 0, 0, 0);
+
+                const transMingguIni = await Transaksi.findAll({
+                    where: {
+                        user_id: pelanggan.id,
+                        status: { [Op.in]: ['ACC', 'disetujui', 'selesai'] },
+                        createdAt: { [Op.gte]: monday }
+                    }
+                });
+                totalMingguIni = transMingguIni.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+                sisaJatah = Math.max(0, maksJatah - totalMingguIni);
+
+                riwayatTransaksi = await Transaksi.findAll({
+                    where: { user_id: pelanggan.id },
+                    include: [{ model: Produk, attributes: ['nama', 'harga'] }],
+                    order: [['createdAt', 'DESC']],
+                    limit: 5
+                });
+            }
+        }
+
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+
+        res.render('pangkalan/transaksi_langsung', {
+            pelanggan,
+            riwayatTransaksi,
+            totalMingguIni,
+            maksJatah,
+            sisaJatah,
+            cariKtp: no_ktp || '',
+            found,
+            searched,
+            success,
+            error,
+            formatRupiah,
+            formatTanggal
+        });
+    } catch (error) {
+        console.error("ERROR TRANSAKSI LANGSUNG:", error);
+        res.status(500).send("Gagal memuat halaman: " + error.message);
     }
 };
 

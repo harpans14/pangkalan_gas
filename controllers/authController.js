@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 
 exports.registerPembeli = async (req, res) => {
     try {
-        const { username, password, no_ktp, sub_role, alamat } = req.body;
+        const { username, password, no_ktp, sub_role, alamat, nomor_hp } = req.body;
 
         if (!/^\d{16}$/.test(no_ktp)) {
             return res.send("No KTP harus 16 digit angka!");
@@ -26,7 +26,8 @@ exports.registerPembeli = async (req, res) => {
             no_ktp,
             role: 'pembeli',
             sub_role,
-            alamat
+            alamat,
+            nomor_hp: nomor_hp || null
         });
 
         res.redirect('/pangkalan/daftar-pelanggan?success=true');
@@ -65,7 +66,7 @@ exports.login = async (req, res) => {
 
 exports.registerPembeliPublic = async (req, res) => {
     try {
-        const { username, password, no_ktp, sub_role, alamat } = req.body;
+        const { username, password, no_ktp, sub_role, alamat, nomor_hp } = req.body;
 
         if (!/^\d{16}$/.test(no_ktp)) {
             return res.render('daftar', { error: 'No KTP harus 16 digit angka!' });
@@ -88,7 +89,8 @@ exports.registerPembeliPublic = async (req, res) => {
             no_ktp,
             role: 'pembeli',
             sub_role,
-            alamat
+            alamat,
+            nomor_hp: nomor_hp || null
         });
 
         res.redirect('/login?register=success');

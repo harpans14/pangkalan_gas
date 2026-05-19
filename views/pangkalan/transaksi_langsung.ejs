@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi Langsung - Pangkalan Gas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Admin</small>
+    </div>
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/pesan-masuk">
+                <i class="bi bi-inbox"></i> Pesanan Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/kelola-produk">
+                <i class="bi bi-box"></i> Kelola Produk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/barang-masuk">
+                <i class="bi bi-arrow-down-circle"></i> Barang Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/tabung">
+                <i class="bi bi-archive"></i> Manajemen Tabung
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/laporan">
+                <i class="bi bi-file-earmark-bar-graph"></i> Laporan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link active" href="/pangkalan/transaksi-langsung">
+                <i class="bi bi-cart-check"></i> Transaksi Langsung
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/daftar-pelanggan">
+                <i class="bi bi-person-plus"></i> Daftar Pelanggan
+            </a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar"><%= username.charAt(0).toUpperCase() %></div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;"><%= username %></div>
+                <small class="text-muted">Pangkalan</small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="main-content page-entrance">
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Transaksi Langsung</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-done"><i class="bi bi-person-check"></i> Layani Pelanggan</span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <%
+            let alertMsg = '';
+            let alertType = '';
+            if (success === 'transaksi_berhasil') { alertMsg = 'Transaksi berhasil dicatat!'; alertType = 'success'; }
+            else if (error === 'pelanggan_tidak_ditemukan') { alertMsg = 'Pelanggan dengan NIK tersebut tidak ditemukan.'; alertType = 'danger'; }
+            else if (error === 'server_error') { alertMsg = 'Terjadi kesalahan server. Silakan coba lagi.'; alertType = 'danger'; }
+        %>
+        <% if (alertMsg) { %>
+            <div class="alert alert-gas alert-gas-<%= alertType %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi <%= alertType === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
+                <%= alertMsg %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- SEARCH FORM -->
+        <div class="card-gas mb-4 reveal">
+            <div class="card-header bg-gas-primary text-white">
+                <i class="bi bi-search me-2"></i>Cari Pelanggan
+            </div>
+            <div class="card-body">
+                <form method="GET" action="/pangkalan/transaksi-langsung" class="row g-3 align-items-end form-gas">
+                    <div class="col-md-6">
+                        <label class="form-label">Masukkan Nomor KTP / NIK Pelanggan</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-credit-card text-gas-primary"></i></span>
+                            <input type="text" name="no_ktp" class="form-control form-control-lg" placeholder="Scan atau ketik Nomor KTP (16 digit)" value="<%= cariKtp %>" minlength="16" maxlength="16" pattern="[0-9]{16}" title="Harus 16 digit angka" oninput="this.value=this.value.replace(/\D/g,'')" required>
+                            <button type="submit" class="btn btn-gas btn-gas-primary btn-lg">
+                                <i class="bi bi-search"></i> Cari
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <% if (!searched) { %>
+        <!-- EMPTY STATE -->
+        <div class="card-gas reveal">
+            <div class="card-body">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-person-badge"></i></div>
+                    <h5>Cari Pelanggan</h5>
+                    <p>Masukkan nomor KTP pelanggan untuk memulai transaksi langsung.</p>
+                </div>
+            </div>
+        </div>
+        <% } else if (!found) { %>
+        <!-- NOT FOUND -->
+        <div class="card-gas reveal">
+            <div class="card-body">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-exclamation-circle text-danger"></i></div>
+                    <h5>Pelanggan Tidak Ditemukan</h5>
+                    <p>Tidak ada pelanggan dengan NIK <strong><%= cariKtp %></strong> yang terdaftar di sistem.</p>
+                    <a href="/pangkalan/daftar-pelanggan" class="btn btn-gas btn-gas-primary mt-3">
+                        <i class="bi bi-person-plus"></i> Daftarkan Pelanggan Baru
+                    </a>
+                </div>
+            </div>
+        </div>
+        <% } else { %>
+        <!-- CUSTOMER FOUND -->
+        <div class="row g-4">
+            <!-- PROFILE CARD -->
+            <div class="col-lg-4">
+                <div class="card-gas profile-card reveal">
+                    <div class="profile-card-header">
+                        <div class="profile-avatar">
+                            <% if (pelanggan.foto) { %>
+                                <img src="<%= pelanggan.foto %>" alt="Foto Profil">
+                            <% } else { %>
+                                <div class="profile-avatar-initial"><%= pelanggan.username.charAt(0).toUpperCase() %></div>
+                            <% } %>
+                        </div>
+                        <h5 class="profile-name"><%= pelanggan.username %></h5>
+                        <span class="profile-badge <%= pelanggan.sub_role === 'rumahtangga' ? 'badge-pending' : 'badge-approved' %>">
+                            <i class="bi <%= pelanggan.sub_role === 'rumahtangga' ? 'bi-house-door' : 'bi-shop' %>"></i>
+                            <%= pelanggan.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %>
+                        </span>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="profile-info">
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-credit-card"></i> NIK/KTP</span>
+                                <span class="profile-info-value"><%= pelanggan.no_ktp %></span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-geo-alt"></i> Alamat</span>
+                                <span class="profile-info-value"><%= pelanggan.alamat || '-' %></span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-telephone"></i> Nomor HP</span>
+                                <span class="profile-info-value"><%= pelanggan.nomor_hp || '-' %></span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-calendar-check"></i> Terdaftar</span>
+                                <span class="profile-info-value"><%= formatTanggal(pelanggan.createdAt) %></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUOTA & STATS -->
+            <div class="col-lg-8">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4 reveal-left">
+                        <div class="card-stat stat-teal h-100">
+                            <div class="stat-icon"><i class="bi bi-ticket-perforated"></i></div>
+                            <div class="stat-label">Jatah Mingguan</div>
+                            <div class="stat-value"><%= maksJatah %> Tabung</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 reveal-left">
+                        <div class="card-stat stat-amber h-100">
+                            <div class="stat-icon"><i class="bi bi-cart-check"></i></div>
+                            <div class="stat-label">Sudah Dibeli</div>
+                            <div class="stat-value"><%= totalMingguIni %> Tabung</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 reveal-left">
+                        <div class="card-stat <%= sisaJatah > 0 ? 'stat-green' : 'stat-red' %> h-100">
+                            <div class="stat-icon"><i class="bi bi-<%= sisaJatah > 0 ? 'check-circle' : 'x-circle' %>"></i></div>
+                            <div class="stat-label">Sisa Kuota</div>
+                            <div class="stat-value"><%= sisaJatah %> Tabung</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECENT TRANSACTIONS -->
+                <div class="card-gas reveal">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-clock-history me-2"></i>Riwayat Transaksi Terakhir</span>
+                        <span class="badge bg-gas-primary"><%= riwayatTransaksi.length %> Transaksi</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table-gas mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <th>Produk</th>
+                                        <th>Jumlah</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (riwayatTransaksi.length === 0) { %>
+                                    <tr>
+                                        <td colspan="5">
+                                            <div class="empty-state py-3">
+                                                <div class="empty-icon" style="font-size:2rem;"><i class="bi bi-receipt"></i></div>
+                                                <h5>Belum Ada Transaksi</h5>
+                                                <p>Pelanggan ini belum memiliki riwayat transaksi.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <% } else { %>
+                                    <% riwayatTransaksi.forEach(t => { %>
+                                    <tr>
+                                        <td><%= formatTanggal(t.createdAt) %></td>
+                                        <td class="fw-bold"><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                        <td><%= t.jumlah_beli %> Tabung</td>
+                                        <td class="fw-bold"><%= t.Produk ? formatRupiah(t.Produk.harga * t.jumlah_beli) : '-' %></td>
+                                        <td>
+                                            <% let badgeClass = 'bg-secondary'; %>
+                                            <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
+                                            <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
+                                            <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
+                                            <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
+                                            <span class="badge-gas <%= badgeClass %>">
+                                                <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
+                                                <%= t.status.charAt(0).toUpperCase() + t.status.slice(1) %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <% }) } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<style>
+.profile-card {
+    overflow: hidden;
+    border: none;
+    border-radius: var(--radius-xl);
+}
+.profile-card-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: var(--white);
+    padding: 2rem 1.5rem 1.5rem;
+    text-align: center;
+}
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.profile-avatar-initial {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--white);
+}
+.profile-name {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+}
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.profile-card-body {
+    padding: 1.25rem 1.5rem;
+}
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.profile-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--gray-100);
+}
+.profile-info-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.profile-info-label {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.profile-info-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    padding-left: 1.5rem;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>
