@@ -83,20 +83,22 @@
 
     <div class="page-content">
         <%
-            let alertMsg = '';
-            let alertType = '';
-            if (success === 'transaksi_berhasil') { alertMsg = 'Transaksi berhasil dicatat!'; alertType = 'success'; }
-            else if (error === 'pelanggan_tidak_ditemukan') { alertMsg = 'Pelanggan dengan NIK tersebut tidak ditemukan.'; alertType = 'danger'; }
-            else if (error === 'invalid_input') { alertMsg = 'Data transaksi tidak valid!'; alertType = 'danger'; }
-            else if (error === 'produk_tidak_ditemukan') { alertMsg = 'Produk tidak ditemukan.'; alertType = 'danger'; }
-            else if (error === 'stok_tidak_cukup') { alertMsg = 'Stok produk tidak mencukupi untuk jumlah tersebut.'; alertType = 'danger'; }
-            else if (error === 'kuota_habis') { alertMsg = 'Kuota mingguan pelanggan sudah habis!'; alertType = 'warning'; }
-            else if (error === 'server_error') { alertMsg = 'Terjadi kesalahan server. Silakan coba lagi.'; alertType = 'danger'; }
+        function getAlertMsg() {
+            if (success === 'transaksi_berhasil') return { msg: 'Transaksi berhasil dicatat!', type: 'success' };
+            if (error === 'pelanggan_tidak_ditemukan') return { msg: 'Pelanggan dengan NIK tersebut tidak ditemukan.', type: 'danger' };
+            if (error === 'invalid_input') return { msg: 'Data transaksi tidak valid!', type: 'danger' };
+            if (error === 'produk_tidak_ditemukan') return { msg: 'Produk tidak ditemukan.', type: 'danger' };
+            if (error === 'stok_tidak_cukup') return { msg: 'Stok produk tidak mencukupi untuk jumlah tersebut.', type: 'danger' };
+            if (error === 'kuota_habis') return { msg: 'Kuota mingguan pelanggan sudah habis!', type: 'warning' };
+            if (error === 'server_error') return { msg: 'Terjadi kesalahan server. Silakan coba lagi.', type: 'danger' };
+            return null;
+        }
+        var alertData = getAlertMsg();
         %>
-        <% if (alertMsg) { %>
-            <div class="alert alert-gas alert-gas-<%= alertType %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
-                <i class="bi <%= alertType === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
-                <%= alertMsg %>
+        <% if (alertData) { %>
+            <div class="alert alert-gas alert-gas-<%= alertData.type %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi <%= alertData.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
+                <%= alertData.msg %>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <% } %>
@@ -196,28 +198,29 @@
                     <div class="col-md-4 reveal-left">
                         <div class="card-stat stat-teal h-100">
                             <div class="stat-icon"><i class="bi bi-ticket-perforated"></i></div>
-                            <div class="stat-label">Jatah Mingguan</div>
-                            <div class="stat-value"><%= maksJatah %> Tabung</div>
+                            <div class="stat-label">Jatah 3Kg / Minggu</div>
+                            <div class="stat-value"><%= maks3Kg > 0 ? maks3Kg + ' Tabung' : '-' %></div>
                         </div>
                     </div>
                     <div class="col-md-4 reveal-left">
                         <div class="card-stat stat-amber h-100">
                             <div class="stat-icon"><i class="bi bi-cart-check"></i></div>
-                            <div class="stat-label">Sudah Dibeli</div>
-                            <div class="stat-value"><%= totalMingguIni %> Tabung</div>
+                            <div class="stat-label">Sudah Dibeli (3Kg)</div>
+                            <div class="stat-value"><%= total3KgMingguIni %> Tabung</div>
                         </div>
                     </div>
                     <div class="col-md-4 reveal-left">
-                        <div class="card-stat <%= sisaJatah > 0 ? 'stat-green' : 'stat-red' %> h-100">
-                            <div class="stat-icon"><i class="bi bi-<%= sisaJatah > 0 ? 'check-circle' : 'x-circle' %>"></i></div>
-                            <div class="stat-label">Sisa Kuota</div>
-                            <div class="stat-value"><%= sisaJatah %> Tabung</div>
+                        <div class="card-stat <%= sisa3Kg > 0 ? 'stat-green' : (maks3Kg > 0 ? 'stat-red' : 'stat-teal') %> h-100">
+                            <div class="stat-icon"><i class="bi bi-<%= sisa3Kg > 0 ? 'check-circle' : (maks3Kg > 0 ? 'x-circle' : 'check-circle') %>"></i></div>
+                            <div class="stat-label">Sisa Kuota 3Kg</div>
+                            <div class="stat-value"><%= maks3Kg > 0 ? sisa3Kg + ' Tabung' : 'Bebas' %></div>
                         </div>
                     </div>
                 </div>
+                <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i> Kuota hanya berlaku untuk Gas 3Kg. Produk lain (5Kg, 12Kg) tanpa batas pembelian.</p>
 
                 <!-- TRANSACTION FORM -->
-                <% if (sisaJatah > 0 && produkList.length > 0) { %>
+                <% if (produkList.length > 0 && found) { %>
                 <div class="card-gas mb-4 reveal">
                     <div class="card-header bg-gas-success text-white">
                         <i class="bi bi-cart-plus me-2"></i>Buat Transaksi Langsung
@@ -227,10 +230,12 @@
                             <input type="hidden" name="user_id" value="<%= pelanggan.id %>">
                             <div class="col-md-5">
                                 <label class="form-label">Pilih Produk</label>
-                                <select name="produk_id" class="form-select form-select-lg" required>
+                                <select name="produk_id" id="produkSelect" class="form-select form-select-lg" required onchange="updateJumlahMax()">
                                     <option value="">-- Pilih Produk --</option>
                                     <% produkList.forEach(p => { %>
-                                        <option value="<%= p.id %>" <%= p.stok <= 0 ? 'disabled' : '' %>>
+                                        <option value="<%= p.id %>"
+                                            data-nama="<%= p.nama.toLowerCase() %>"
+                                            <%= p.stok <= 0 ? 'disabled' : '' %>>
                                             <%= p.nama %> - Rp <%= (p.harga || 0).toLocaleString() %> (Stok: <%= p.stok %>)
                                         </option>
                                     <% }) %>
@@ -238,8 +243,8 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Jumlah Tabung</label>
-                                <input type="number" name="jumlah_beli" class="form-control form-control-lg" min="1" max="<%= sisaJatah %>" placeholder="Maks <%= sisaJatah %>" required>
-                                <small class="text-muted">Sisa kuota: <strong><%= sisaJatah %></strong> tabung</small>
+                                <input type="number" name="jumlah_beli" id="jumlahBeli" class="form-control form-control-lg" min="1" required>
+                                <small id="kuotaInfo" class="text-muted"></small>
                             </div>
                             <div class="col-md-4">
                                 <button type="submit" class="btn btn-gas btn-gas-success btn-lg w-100">
@@ -249,10 +254,10 @@
                         </form>
                     </div>
                 </div>
-                <% } else if (sisaJatah <= 0 && found) { %>
+                <% if (maks3Kg > 0 && sisa3Kg <= 0) { %>
                 <div class="alert alert-gas alert-gas-warning alert-dismissible fade show reveal" role="alert" data-auto-dismiss="8000">
                     <i class="bi bi-exclamation-triangle-fill"></i>
-                    Kuota mingguan pelanggan ini sudah habis (<strong><%= totalMingguIni %></strong>/<strong><%= maksJatah %></strong> tabung). Tidak dapat melakukan transaksi.
+                    Kuota Gas 3Kg minggu ini sudah habis (<strong><%= total3KgMingguIni %></strong>/<strong><%= maks3Kg %></strong> tabung). Pembelian 3Kg tidak dapat dilakukan.
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <% } else if (produkList.length === 0 && found) { %>
@@ -261,6 +266,7 @@
                     Belum ada produk yang tersedia. Silakan tambah produk terlebih dahulu.
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
+                <% } %>
                 <% } %>
 
                 <!-- RECENT TRANSACTIONS -->
@@ -311,7 +317,8 @@
                                             </span>
                                         </td>
                                     </tr>
-                                    <% }) } %>
+                                    <% }) %>
+                                    <% } %>
                                 </tbody>
                             </table>
                         </div>
@@ -406,6 +413,35 @@
 }
 </style>
 
+<script>
+function updateJumlahMax() {
+    const select = document.getElementById('produkSelect');
+    const input = document.getElementById('jumlahBeli');
+    const info = document.getElementById('kuotaInfo');
+    const option = select.options[select.selectedIndex];
+    if (!option || !option.value) {
+        input.max = '';
+        input.placeholder = '';
+        info.textContent = '';
+        return;
+    }
+    const nama = (option.getAttribute('data-nama') || '').toLowerCase();
+    const is3Kg = nama.includes('3kg');
+    const sisa3Kg = <%= sisa3Kg %>;
+    const stok = option.disabled ? 0 : parseInt(option.textContent.match(/Stok:\s*(\d+)/)?.[1] || 0);
+
+    if (is3Kg) {
+        const max = Math.min(sisa3Kg, stok);
+        input.max = max;
+        input.placeholder = 'Maks ' + max;
+        info.innerHTML = 'Sisa kuota 3Kg: <strong>' + sisa3Kg + '</strong> tabung';
+    } else {
+        input.max = stok;
+        input.placeholder = 'Maks ' + stok;
+        info.innerHTML = 'Produk non-3Kg, bebas batas.';
+    }
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js"></script>
 </body>

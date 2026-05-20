@@ -11,24 +11,36 @@ exports.getDashboard = async (req, res) => {
             return res.status(404).send("User tidak ditemukan!");
         }
 
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - 7);
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        monday.setHours(0, 0, 0, 0);
 
         const produk3Kg = await Produk.findOne({
             where: { nama: { [Op.like]: '%3Kg%' } }
         });
 
-        let sudahBeli3Kg = false;
+        let total3KgMingguIni = 0;
+        let maks3Kg = 0;
+        let sisa3Kg = 0;
         if (produk3Kg) {
-            const transaksi3Kg = await Transaksi.findOne({
+            if (user.sub_role === 'rumahtangga') {
+                maks3Kg = 1;
+            } else if (user.sub_role === 'usaha_mikro') {
+                maks3Kg = 3;
+            }
+            const trans3Kg = await Transaksi.findAll({
                 where: {
                     user_id: userId,
                     produk_id: produk3Kg.id,
                     status: { [Op.in]: ['pending', 'disetujui', 'selesai'] },
-                    createdAt: { [Op.gte]: startOfWeek }
+                    createdAt: { [Op.gte]: monday }
                 }
             });
-            sudahBeli3Kg = !!transaksi3Kg;
+            total3KgMingguIni = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+            sisa3Kg = Math.max(0, maks3Kg - total3KgMingguIni);
         }
 
         const saldoTabung = await LogTabung.sum('jumlah_tabung', {
@@ -53,7 +65,7 @@ exports.getDashboard = async (req, res) => {
 
         const success = req.query.success || null;
         const error = req.query.error || null;
-        res.render('pembeli/dashboard', { user, saldoTabung, daftarProduk, riwayatTransaksi, success, error, sudahBeli3Kg, produk3Kg, currentPage: page, totalPages, totalItems });
+        res.render('pembeli/dashboard', { user, saldoTabung, daftarProduk, riwayatTransaksi, success, error, produk3Kg, total3KgMingguIni, maks3Kg, sisa3Kg, currentPage: page, totalPages, totalItems });
     } catch (error) {
         console.error("EROR DASHBOARD:", error);
         res.status(500).send("Detail Error Dashboard: " + error.message);
@@ -122,19 +134,32 @@ exports.pesanGas = async (req, res) => {
         const isGas3Kg = produk.nama.toLowerCase().includes('3kg');
 
         if (isGas3Kg) {
-            const startOfWeek = new Date();
-            startOfWeek.setDate(startOfWeek.getDate() - 7);
+            const user = await User.findByPk(userId);
+            let maks3Kg = 0;
+            if (user.sub_role === 'rumahtangga') {
+                maks3Kg = 1;
+            } else if (user.sub_role === 'usaha_mikro') {
+                maks3Kg = 3;
+            }
 
-            const sudahBeli3Kg = await Transaksi.findOne({
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - diff);
+            monday.setHours(0, 0, 0, 0);
+
+            const trans3Kg = await Transaksi.findAll({
                 where: {
                     user_id: userId,
                     produk_id: produk_id,
                     status: { [Op.in]: ['pending', 'disetujui', 'selesai'] },
-                    createdAt: { [Op.gte]: startOfWeek }
+                    createdAt: { [Op.gte]: monday }
                 }
             });
+            const sudahBeli = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
 
-            if (sudahBeli3Kg) {
+            if (sudahBeli + jml > maks3Kg) {
                 return res.redirect('/pembeli/dashboard?error=kuota_3kg_habis');
             }
         }

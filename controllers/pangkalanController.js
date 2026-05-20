@@ -426,10 +426,12 @@ exports.transaksiLangsung = async (req, res) => {
         let pelanggan = null;
         let riwayatTransaksi = [];
         let totalMingguIni = 0;
-        let maksJatah = 0;
-        let sisaJatah = 0;
         let found = false;
         let searched = !!no_ktp;
+        let produk3Kg = null;
+        let total3KgMingguIni = 0;
+        let maks3Kg = 0;
+        let sisa3Kg = 0;
 
         if (no_ktp) {
             pelanggan = await User.findOne({
@@ -439,12 +441,6 @@ exports.transaksiLangsung = async (req, res) => {
 
             if (pelanggan) {
                 found = true;
-
-                if (pelanggan.sub_role === 'rumahtangga') {
-                    maksJatah = 1;
-                } else if (pelanggan.sub_role === 'usaha_mikro') {
-                    maksJatah = 3;
-                }
 
                 const now = new Date();
                 const dayOfWeek = now.getDay();
@@ -461,7 +457,20 @@ exports.transaksiLangsung = async (req, res) => {
                     }
                 });
                 totalMingguIni = transMingguIni.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
-                sisaJatah = Math.max(0, maksJatah - totalMingguIni);
+
+                produk3Kg = await Produk.findOne({
+                    where: { nama: { [Op.like]: '%3Kg%' } }
+                });
+                if (produk3Kg) {
+                    if (pelanggan.sub_role === 'rumahtangga') {
+                        maks3Kg = 1;
+                    } else if (pelanggan.sub_role === 'usaha_mikro') {
+                        maks3Kg = 3;
+                    }
+                    const trans3Kg = transMingguIni.filter(t => t.produk_id === produk3Kg.id);
+                    total3KgMingguIni = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+                    sisa3Kg = Math.max(0, maks3Kg - total3KgMingguIni);
+                }
 
                 riwayatTransaksi = await Transaksi.findAll({
                     where: { user_id: pelanggan.id },
@@ -481,8 +490,10 @@ exports.transaksiLangsung = async (req, res) => {
             pelanggan,
             riwayatTransaksi,
             totalMingguIni,
-            maksJatah,
-            sisaJatah,
+            produk3Kg,
+            total3KgMingguIni,
+            maks3Kg,
+            sisa3Kg,
             cariKtp: no_ktp || '',
             found,
             searched,
@@ -522,26 +533,33 @@ exports.prosesTransaksiLangsung = async (req, res) => {
             return res.redirect('/pangkalan/transaksi-langsung?error=stok_tidak_cukup&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
         }
 
-        const now = new Date();
-        const dayOfWeek = now.getDay();
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - diff);
-        monday.setHours(0, 0, 0, 0);
+        const isGas3Kg = produk.nama.toLowerCase().includes('3kg');
+        if (isGas3Kg) {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - diff);
+            monday.setHours(0, 0, 0, 0);
 
-        const transMingguIni = await Transaksi.findAll({
-            where: {
-                user_id: pelanggan.id,
-                status: { [Op.in]: ['ACC', 'disetujui', 'selesai'] },
-                createdAt: { [Op.gte]: monday }
+            const transMingguIni = await Transaksi.findAll({
+                where: {
+                    user_id: pelanggan.id,
+                    status: { [Op.in]: ['ACC', 'disetujui', 'selesai'] },
+                    createdAt: { [Op.gte]: monday }
+                }
+            });
+            const produk3Kg = await Produk.findOne({
+                where: { nama: { [Op.like]: '%3Kg%' } }
+            });
+            const trans3Kg = produk3Kg ? transMingguIni.filter(t => t.produk_id === produk3Kg.id) : [];
+            const total3Kg = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+            const maks3Kg = pelanggan.sub_role === 'rumahtangga' ? 1 : pelanggan.sub_role === 'usaha_mikro' ? 3 : 0;
+            const sisa3Kg = Math.max(0, maks3Kg - total3Kg);
+
+            if (jml > sisa3Kg) {
+                return res.redirect('/pangkalan/transaksi-langsung?error=kuota_habis&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
             }
-        });
-        const totalMingguIni = transMingguIni.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
-        const maksJatah = pelanggan.sub_role === 'rumahtangga' ? 1 : pelanggan.sub_role === 'usaha_mikro' ? 3 : 0;
-        const sisaJatah = Math.max(0, maksJatah - totalMingguIni);
-
-        if (jml > sisaJatah) {
-            return res.redirect('/pangkalan/transaksi-langsung?error=kuota_habis&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
         }
 
         const jenis = require('../utils/stokHelper').extractJenisDariNama(produk.nama);
