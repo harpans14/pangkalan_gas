@@ -85,11 +85,10 @@
         <%
             let alertMsg = '';
             let alertType = '';
-            if (success === 'tambah') { alertMsg = 'Produk berhasil ditambahkan!'; alertType = 'success'; }
-            else if (success === 'hapus') { alertMsg = 'Produk berhasil dihapus!'; alertType = 'success'; }
+            if (success === 'edit') { alertMsg = 'Produk berhasil diperbarui!'; alertType = 'success'; }
             else if (error === 'invalid_input') { alertMsg = 'Data tidak valid!'; alertType = 'danger'; }
             else if (error === 'gagal') { alertMsg = 'Gagal memproses data!'; alertType = 'danger'; }
-            else if (error === 'produk_terpakai') { alertMsg = 'Produk tidak bisa dihapus karena masih memiliki riwayat barang masuk!'; alertType = 'danger'; }
+            else if (error === 'not_found') { alertMsg = 'Produk tidak ditemukan!'; alertType = 'danger'; }
         %>
         <% if (alertMsg) { %>
             <div class="alert alert-gas alert-gas-<%= alertType %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
@@ -98,33 +97,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <% } %>
-        <!-- ADD PRODUCT FORM -->
-        <div class="card-gas mb-4 reveal">
-            <div class="card-header bg-gas-primary text-white">
-                <i class="bi bi-plus-circle me-2"></i>Tambah Produk Baru
-            </div>
-            <div class="card-body">
-                <form action="/pangkalan/tambah-produk" method="POST" class="row g-3 form-gas">
-                    <div class="col-md-5">
-                        <input type="text" name="nama" class="form-control" placeholder="Nama Produk (contoh: Gas LPG 3Kg)" required>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white">Rp</span>
-                            <input type="number" name="harga" class="form-control" placeholder="Harga" required>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <input type="number" name="stok" class="form-control" placeholder="Stok Awal" value="0">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-gas btn-gas-primary w-100">
-                            <i class="bi bi-plus-lg"></i> Tambah
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+
 
         <!-- PRODUCT TABLE -->
         <div class="card-gas reveal">
@@ -146,10 +119,10 @@
                             <% if (produk.length === 0) { %>
                             <tr>
                                 <td colspan="4">
-                                    <div class="empty-state">
+                                        <div class="empty-state">
                                         <div class="empty-icon"><i class="bi bi-box"></i></div>
                                         <h5>Belum Ada Produk</h5>
-                                        <p>Tambah produk baru menggunakan form di atas.</p>
+                                        <p>Belum ada produk yang tersedia.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -164,11 +137,10 @@
                                     </span>
                                 </td>
                                 <td class="text-center">
-                                    <form action="/pangkalan/hapus-produk/<%= p.id %>" method="POST" onsubmit="return confirm('Hapus produk <%= p.nama %>?')">
-                                        <button type="submit" class="btn btn-gas btn-gas-danger btn-gas-sm">
-                                            <i class="bi bi-trash"></i> Hapus
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-gas btn-gas-primary btn-gas-sm"
+                                        data-bs-toggle="modal" data-bs-target="#editModal<%= p.id %>">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
                                 </td>
                             </tr>
                             <% }) } %>
@@ -179,6 +151,44 @@
         </div>
     </div>
 </div>
+
+<% produk.forEach(p => { %>
+<div class="modal fade" id="editModal<%= p.id %>" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gas-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Produk</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/pangkalan/edit-produk/<%= p.id %>" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nama Produk</label>
+                        <input type="text" name="nama" class="form-control" value="<%= p.nama %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Harga</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">Rp</span>
+                            <input type="number" name="harga" class="form-control" value="<%= p.harga %>" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Stok Saat Ini</label>
+                        <input type="text" class="form-control" value="<%= p.stok %> tersedia" disabled>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-gas btn-gas-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-gas btn-gas-primary">
+                        <i class="bi bi-check-lg"></i> Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<% }) %>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js"></script>

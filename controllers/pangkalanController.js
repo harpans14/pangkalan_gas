@@ -118,50 +118,36 @@ exports.tolakPesanan = async (req, res) => {
 exports.kelolaProduk = async (req, res) => {
     try {
         const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
-        res.render('pangkalan/kelola_produk', { produk });
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+        res.render('pangkalan/kelola_produk', { produk, success, error });
     } catch (error) {
         console.error("ERROR KELOLA PRODUK:", error);
         res.status(500).send("Gagal memuat produk: " + error.message);
     }
 };
 
-exports.tambahProduk = async (req, res) => {
+exports.editProduk = async (req, res) => {
     try {
-        const { nama, harga, stok } = req.body;
+        const { id } = req.params;
+        const { nama, harga } = req.body;
+
         if (!nama || !harga) {
             return res.redirect('/pangkalan/kelola-produk?error=invalid_input');
         }
-        const newProduk = await Produk.create({
-            nama,
-            harga: parseInt(harga) || 0,
-            stok: parseInt(stok) || 0,
-            createdBy: req.session.userId
-        });
 
-        const jenis = extractJenisDariNama(nama);
-        if (jenis) {
-            const tabungStok = await cariAtauBuatTabungStok(jenis);
-            await syncProdukStok(jenis, newProduk);
+        const produk = await Produk.findOne({ where: { id, createdBy: req.session.userId } });
+        if (!produk) {
+            return res.redirect('/pangkalan/kelola-produk?error=not_found');
         }
 
-        res.redirect('/pangkalan/kelola-produk?success=tambah');
-    } catch (error) {
-        console.error("ERROR TAMBAH PRODUK:", error);
-        res.redirect('/pangkalan/kelola-produk?error=gagal');
-    }
-};
+        produk.nama = nama;
+        produk.harga = parseInt(harga) || 0;
+        await produk.save();
 
-exports.hapusProduk = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const terkait = await BarangMasuk.count({ where: { produk_id: id } });
-        if (terkait > 0) {
-            return res.redirect('/pangkalan/kelola-produk?error=produk_terpakai');
-        }
-        await Produk.destroy({ where: { id, createdBy: req.session.userId } });
-        res.redirect('/pangkalan/kelola-produk?success=hapus');
+        res.redirect('/pangkalan/kelola-produk?success=edit');
     } catch (error) {
-        console.error("ERROR HAPUS PRODUK:", error);
+        console.error("ERROR EDIT PRODUK:", error);
         res.redirect('/pangkalan/kelola-produk?error=gagal');
     }
 };

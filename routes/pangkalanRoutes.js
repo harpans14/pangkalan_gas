@@ -9,8 +9,7 @@ router.get('/pesan-masuk', pangkalanController.getPesananMasuk);
 router.post('/acc-proses', pangkalanController.accPesanan);
 router.post('/tolak-proses', pangkalanController.tolakPesanan);
 router.get('/kelola-produk', pangkalanController.kelolaProduk);
-router.post('/tambah-produk', pangkalanController.tambahProduk);
-router.post('/hapus-produk/:id', pangkalanController.hapusProduk);
+router.post('/edit-produk/:id', pangkalanController.editProduk);
 
 router.get('/barang-masuk', pangkalanController.getBarangMasuk);
 router.post('/tambah-barang-masuk', pangkalanController.tambahBarangMasuk);
