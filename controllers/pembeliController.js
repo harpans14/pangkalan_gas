@@ -1,6 +1,8 @@
 const { User, Transaksi, LogTabung, Produk } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
+const path = require('path');
+const fs = require('fs');
 
 exports.getDashboard = async (req, res) => {
     try {
@@ -111,7 +113,7 @@ exports.updateProfil = async (req, res) => {
 exports.pesanGas = async (req, res) => {
     try {
         const userId = req.session.userId;
-        const { produk_id, jumlah, metode } = req.body;
+        const { produk_id, jumlah, metode, metode_pembayaran } = req.body;
 
         const jml = parseInt(jumlah);
         if (!produk_id || isNaN(jml) || jml < 1) {
@@ -119,6 +121,10 @@ exports.pesanGas = async (req, res) => {
         }
 
         if (!['ambil', 'kirim'].includes(metode)) {
+            return res.redirect('/pembeli/dashboard?error=invalid_metode');
+        }
+
+        if (!['cod', 'transfer', 'qris'].includes(metode_pembayaran)) {
             return res.redirect('/pembeli/dashboard?error=invalid_metode');
         }
 
@@ -164,18 +170,84 @@ exports.pesanGas = async (req, res) => {
             }
         }
 
-        await Transaksi.create({
+        const statusPembayaran = metode_pembayaran === 'cod' ? 'lunas' : 'belum_bayar';
+
+        const transaksi = await Transaksi.create({
             user_id: userId,
             produk_id: produk_id || null,
             jumlah_beli: jml,
             metode,
+            metode_pembayaran,
+            status_pembayaran: statusPembayaran,
             status: 'pending',
             tanggal: new Date()
         });
 
-        res.redirect('/pembeli/dashboard?success=true');
+        if (metode_pembayaran === 'cod') {
+            return res.redirect('/pembeli/dashboard?success=true');
+        }
+
+        res.redirect('/pembeli/pembayaran/' + transaksi.id);
     } catch (error) {
         console.error("EROR PESAN GAS:", error);
         res.status(500).send("Detail Error Pesan: " + error.message);
+    }
+};
+
+exports.getPembayaran = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const transaksi = await Transaksi.findByPk(req.params.id, {
+            include: [{ model: Produk }]
+        });
+
+        if (!transaksi || transaksi.user_id !== userId) {
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        const totalHarga = (transaksi.Produk ? transaksi.Produk.harga : 0) * transaksi.jumlah_beli;
+        const error = req.query.error || null;
+
+        res.render('pembeli/pembayaran', { transaksi, totalHarga, error });
+    } catch (error) {
+        console.error("EROR HALAMAN PEMBAYARAN:", error);
+        res.status(500).send("Terjadi kesalahan: " + error.message);
+    }
+};
+
+exports.uploadBukti = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.redirect('/pembeli/pembayaran/' + req.params.id + '?error=no_file');
+        }
+
+        const userId = req.session.userId;
+        const transaksi = await Transaksi.findByPk(req.params.id);
+
+        if (!transaksi || transaksi.user_id !== userId) {
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        if (transaksi.status_pembayaran !== 'belum_bayar') {
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.redirect('/pembeli/pembayaran/' + req.params.id + '?error=sudah_dibayar');
+        }
+
+        transaksi.bukti_pembayaran = '/uploads/bukti_pembayaran/' + req.file.filename;
+        transaksi.status_pembayaran = 'menunggu_verifikasi';
+        await transaksi.save();
+
+        res.redirect('/pembeli/dashboard?success=upload_berhasil');
+    } catch (error) {
+        console.error("EROR UPLOAD BUKTI:", error);
+        if (req.file) {
+            try { fs.unlinkSync(req.file.path); } catch (e) {}
+        }
+        res.status(500).send("Terjadi kesalahan: " + error.message);
     }
 };

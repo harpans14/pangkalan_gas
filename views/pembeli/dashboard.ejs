@@ -70,6 +70,7 @@
             if (locals.success) { alertMsg = 'Pesanan berhasil dibuat! Silakan tunggu konfirmasi dari pangkalan.'; alertType = 'success'; }
             else if (error === 'invalid_input') { alertMsg = 'Data pesanan tidak valid!'; alertType = 'danger'; }
             else if (error === 'invalid_metode') { alertMsg = 'Metode pengiriman tidak valid!'; alertType = 'danger'; }
+            else if (success === 'upload_berhasil') { alertMsg = 'Bukti pembayaran berhasil diupload! Silakan tunggu konfirmasi dari pangkalan.'; alertType = 'success'; }
             else if (error === 'produk_not_found') { alertMsg = 'Produk tidak ditemukan!'; alertType = 'danger'; }
             else if (error === 'stok_habis') { alertMsg = 'Stok produk tidak mencukupi!'; alertType = 'danger'; }
             else if (error === 'kuota_3kg_habis') { alertMsg = 'Kuota Gas 3Kg minggu ini sudah habis! Maksimal ' + (user.sub_role === 'rumahtangga' ? 1 : 3) + ' tabung per minggu. Silakan tunggu minggu depan.'; alertType = 'danger'; }
@@ -209,13 +210,22 @@
                                 <input type="number" name="jumlah" class="form-control" min="1" value="1" required>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Metode</label>
+                                <label class="form-label">Metode Pengiriman</label>
                                 <select name="metode" class="form-select">
                                     <option value="ambil">Ambil di Pangkalan</option>
                                     <option value="kirim">Kirim (Delivery)</option>
                                 </select>
                             </div>
-                            <div class="col-12">
+                            <div class="col-md-6">
+                                <label class="form-label">Metode Pembayaran</label>
+                                <select name="metode_pembayaran" class="form-select" required>
+                                    <option value="">-- Pilih Pembayaran --</option>
+                                    <option value="cod">COD / Bayar di Tempat</option>
+                                    <option value="transfer">Transfer Bank</option>
+                                    <option value="qris">QRIS</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
                                 <button type="submit" class="btn btn-gas btn-gas-success btn-gas-lg w-100">
                                     <i class="bi bi-cart-check"></i> Buat Pesanan
                                 </button>

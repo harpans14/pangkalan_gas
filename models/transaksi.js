@@ -13,6 +13,9 @@ module.exports = (sequelize, DataTypes) => {
     produk_id: DataTypes.INTEGER,
     jumlah_beli: DataTypes.INTEGER,
     metode: DataTypes.STRING,
+    metode_pembayaran: DataTypes.STRING,
+    status_pembayaran: DataTypes.STRING,
+    bukti_pembayaran: DataTypes.STRING,
     status: DataTypes.ENUM('pending', 'ACC', 'ditolak', 'disetujui', 'selesai'),
     tanda_tangan: DataTypes.TEXT,
     tanggal: DataTypes.DATE

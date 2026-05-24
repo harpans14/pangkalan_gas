@@ -23,6 +23,9 @@ exports.getPesananMasuk = async (req, res) => {
             produk_id: p.produk_id,
             jumlah: p.jumlah_beli,
             metode: p.metode,
+            metode_pembayaran: p.metode_pembayaran,
+            status_pembayaran: p.status_pembayaran,
+            bukti_pembayaran: p.bukti_pembayaran,
             tanggal: p.createdAt,
             stok_tersedia: p.Produk ? p.Produk.stok : 0
         }));
@@ -79,6 +82,9 @@ exports.accPesanan = async (req, res) => {
 
         transaksi.status = 'disetujui';
         transaksi.tanda_tangan = ttd_data || null;
+        if (transaksi.status_pembayaran === 'menunggu_verifikasi') {
+            transaksi.status_pembayaran = 'lunas';
+        }
         await transaksi.save();
 
         return res.redirect('/pangkalan/pesan-masuk?success=acc_berhasil');
@@ -111,6 +117,33 @@ exports.tolakPesanan = async (req, res) => {
         return res.redirect('/pangkalan/pesan-masuk?success=tolak_berhasil');
     } catch (error) {
         console.error("ERROR TOLAK PESANAN:", error);
+        return res.redirect('/pangkalan/pesan-masuk?error=server_error');
+    }
+};
+
+exports.konfirmasiPembayaran = async (req, res) => {
+    try {
+        const { id_transaksi } = req.body;
+
+        if (!id_transaksi) {
+            return res.redirect('/pangkalan/pesan-masuk?error=transaksi_tidak_ditemukan');
+        }
+
+        const transaksi = await Transaksi.findByPk(id_transaksi);
+        if (!transaksi) {
+            return res.redirect('/pangkalan/pesan-masuk?error=transaksi_tidak_ditemukan');
+        }
+
+        if (transaksi.status_pembayaran !== 'menunggu_verifikasi') {
+            return res.redirect('/pangkalan/pesan-masuk?error=pembayaran_sudah_dikonfirmasi');
+        }
+
+        transaksi.status_pembayaran = 'lunas';
+        await transaksi.save();
+
+        return res.redirect('/pangkalan/pesan-masuk?success=pembayaran_dikonfirmasi');
+    } catch (error) {
+        console.error("ERROR KONFIRMASI PEMBAYARAN:", error);
         return res.redirect('/pangkalan/pesan-masuk?error=server_error');
     }
 };

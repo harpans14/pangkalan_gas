@@ -8,6 +8,7 @@ router.use(isLoggedIn, isRole('pangkalan'));
 router.get('/pesan-masuk', pangkalanController.getPesananMasuk);
 router.post('/acc-proses', pangkalanController.accPesanan);
 router.post('/tolak-proses', pangkalanController.tolakPesanan);
+router.post('/konfirmasi-pembayaran', pangkalanController.konfirmasiPembayaran);
 router.get('/kelola-produk', pangkalanController.kelolaProduk);
 router.post('/edit-produk/:id', pangkalanController.editProduk);
 
