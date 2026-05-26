@@ -1,4 +1,4 @@
-const { Transaksi, User, Produk, BarangMasuk, TabungStok } = require('../models');
+const { Transaksi, User, Produk, BarangMasuk, TabungStok, CarouselImage, WebsiteInfo } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
@@ -835,5 +835,86 @@ exports.downloadLaporanPDF = async (req, res) => {
     } catch (error) {
         console.error("ERROR PDF LAPORAN:", error);
         res.status(500).send("Gagal membuat PDF: " + error.message);
+    }
+};
+
+exports.getCarousel = async (req, res) => {
+    try {
+        const banners = await CarouselImage.findAll({ order: [['createdAt', 'DESC']] });
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+        res.render('pangkalan/kelola_carousel', { banners, success, error });
+    } catch (error) {
+        console.error("ERROR GET CAROUSEL:", error);
+        res.status(500).send("Gagal memuat kelola banner: " + error.message);
+    }
+};
+
+exports.uploadCarousel = async (req, res) => {
+    try {
+        const { title, description } = req.body;
+        if (!req.file) {
+            return res.redirect('/pangkalan/carousel?error=no_file');
+        }
+
+        const imageUrl = '/uploads/carousel/' + req.file.filename;
+
+        await CarouselImage.create({
+            imageUrl,
+            title: title || null,
+            description: description || null
+        });
+
+        return res.redirect('/pangkalan/carousel?success=tambah');
+    } catch (error) {
+        console.error("ERROR UPLOAD CAROUSEL:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
+    }
+};
+
+exports.deleteCarousel = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const banner = await CarouselImage.findByPk(id);
+        if (!banner) {
+            return res.redirect('/pangkalan/carousel?error=not_found');
+        }
+
+        // Delete physical file
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.join(__dirname, '..', 'public', banner.imageUrl);
+
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        await banner.destroy();
+        return res.redirect('/pangkalan/carousel?success=hapus');
+    } catch (error) {
+        console.error("ERROR DELETE CAROUSEL:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
+    }
+};
+
+exports.updateWebsiteInfo = async (req, res) => {
+    try {
+        const { description, address, phone, email } = req.body;
+        
+        let info = await WebsiteInfo.findOne();
+        if (!info) {
+            await WebsiteInfo.create({ description, address, phone, email });
+        } else {
+            info.description = description;
+            info.address = address;
+            info.phone = phone;
+            info.email = email;
+            await info.save();
+        }
+
+        return res.redirect('/pangkalan/carousel?success=info_edit');
+    } catch (error) {
+        console.error("ERROR UPDATE WEBSITE INFO:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
     }
 };

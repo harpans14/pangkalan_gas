@@ -14,31 +14,52 @@
 
 <div class="sidebar-gas" id="sidebar">
     <div class="sidebar-header">
-        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <h5><i class="bi bi-fire me-2"></i>Pangkalan Gas</h5>
         <small>Panel Pembeli</small>
     </div>
     <div class="sidebar-menu">
         <div class="nav-item">
-            <a class="nav-link active" href="/pembeli/dashboard">
+            <a class="nav-link active" href="#" data-tab="tab-dashboard" onclick="switchTab(event, 'tab-dashboard')">
                 <i class="bi bi-speedometer2"></i> Dashboard
             </a>
         </div>
         <div class="nav-item">
-            <a class="nav-link" href="/pembeli/edit-profil">
-                <i class="bi bi-person-gear"></i> Edit Profil
+            <a class="nav-link" href="#" data-tab="tab-pesan" onclick="switchTab(event, 'tab-pesan')">
+                <i class="bi bi-cart-plus"></i> Pesan Gas
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="#" data-tab="tab-riwayat" onclick="switchTab(event, 'tab-riwayat')">
+                <i class="bi bi-clock-history"></i> Riwayat
             </a>
         </div>
     </div>
     <div class="sidebar-footer">
-        <div class="user-info">
-            <div class="user-avatar"><%= user.username.charAt(0).toUpperCase() %></div>
-            <div>
-                <div style="font-weight:600;font-size:0.9rem;"><%= user.username %></div>
-                <small class="text-muted"><%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %></small>
+        <div class="dropdown">
+            <div class="user-info dropdown-toggle no-caret" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                <div class="user-avatar"><%= user.username.charAt(0).toUpperCase() %></div>
+                <div class="d-none d-md-block text-start">
+                    <div style="font-weight:600;font-size:0.85rem;"><%= user.username %></div>
+                    <small class="text-muted" style="font-size:0.7rem;"><%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %></small>
+                </div>
             </div>
-            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
-                <i class="bi bi-box-arrow-right"></i>
-            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="border-radius: 12px; min-width: 180px;">
+                <li class="px-3 py-2 border-bottom d-md-none">
+                    <div style="font-weight:600;font-size:0.85rem;color:var(--gray-800);"><%= user.username %></div>
+                    <small class="text-muted" style="font-size:0.7rem;"><%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %></small>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2" href="/pembeli/edit-profil">
+                        <i class="bi bi-person-gear me-2 text-primary"></i>Edit Profil
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                    <a class="dropdown-item py-2 text-danger" href="/logout">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </a>
+                </li>
+            </ul>
         </div>
     </div>
 </div>
@@ -83,249 +104,366 @@
             </div>
         <% } %>
 
-        <div class="row g-4">
-            <!-- LEFT: INFO PEMBELI -->
-            <div class="col-lg-4 reveal-left">
-                <div class="card-gas mb-4">
-                    <div class="card-body text-center">
-                        <div style="width:72px;height:72px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;margin:0 auto 1rem;">
-                            <%= user.username.charAt(0).toUpperCase() %>
-                        </div>
-                        <h5 class="fw-bold"><%= user.username %></h5>
-                        <span class="badge-gas <%= user.sub_role === 'rumahtangga' ? 'badge-pending' : 'badge-approved' %>">
-                            <%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %>
-                        </span>
-                        <a href="/pembeli/edit-profil" class="btn btn-gas btn-gas-accent btn-gas-sm w-100 mb-3">
-                            <i class="bi bi-pencil"></i> Edit Profil
-                        </a>
-                        <hr>
-                        <div class="text-start">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted"><i class="bi bi-fuel-pump"></i> Gas 3Kg</span>
-                                <strong class="<%= sisa3Kg <= 0 && maks3Kg > 0 ? 'text-danger' : 'text-success' %>">
-                                    <%= total3KgMingguIni %>/<%= maks3Kg %> tabung
-                                </strong>
+        <!-- ============================================
+             TAB: DASHBOARD (Produk Tersedia + Info User)
+             ============================================ -->
+        <div class="tab-panel active" id="tab-dashboard">
+            <div class="row g-4">
+                <!-- LEFT: INFO PEMBELI -->
+                <div class="col-lg-4 reveal-left">
+                    <div class="card-gas mb-4">
+                        <div class="card-body text-center">
+                            <div style="width:72px;height:72px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;margin:0 auto 1rem;">
+                                <%= user.username.charAt(0).toUpperCase() %>
                             </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Status Tabung</span>
-                                <strong class="<%= saldoTabung >= 0 ? 'text-gas-primary' : 'text-gas-accent' %>">
-                                    <%= saldoTabung >= 0 ? 'Simpan: ' + saldoTabung : 'Pinjam: ' + Math.abs(saldoTabung) %>
-                                </strong>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BATAS GAS 3KG -->
-                <div class="card-gas">
-                    <div class="card-header">
-                        <i class="bi bi-fuel-pump me-2"></i>Batas Gas 3Kg
-                    </div>
-                    <div class="card-body">
-                        <% if (maks3Kg > 0) { %>
-                        <p class="mb-2 text-muted small">
-                            <% if (user.sub_role === 'rumahtangga') { %>
-                                Rumah Tangga: maksimal <strong>1 tabung</strong> Gas 3Kg per minggu.
-                            <% } else { %>
-                                Usaha Mikro: maksimal <strong>3 tabung</strong> Gas 3Kg per minggu.
-                            <% } %>
-                        </p>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Sudah dibeli minggu ini</span>
-                            <strong><%= total3KgMingguIni %> / <%= maks3Kg %> tabung</strong>
-                        </div>
-                        <div class="progress" style="height:8px;">
-                            <div class="progress-bar <%= sisa3Kg > 0 ? 'bg-success' : 'bg-danger' %>" role="progressbar" style="width: <%= (total3KgMingguIni / maks3Kg) * 100 %>%"></div>
-                        </div>
-                        <div class="d-flex justify-content-between mt-1">
-                            <small class="text-muted">Terpakai</small>
-                            <strong class="<%= sisa3Kg > 0 ? 'text-success' : 'text-danger' %> small">
-                                Sisa: <%= sisa3Kg %> tabung
-                            </strong>
-                        </div>
-                        <% } %>
-                        <p class="mb-0 mt-2 text-muted small"><i class="bi bi-info-circle"></i> Produk lain (5Kg, 12Kg) bebas tanpa batas.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT: FORM PESAN + RIWAYAT -->
-            <div class="col-lg-8 reveal-right">
-                <!-- PRODUK CARD GRID -->
-                <div class="card-gas mb-4">
-                    <div class="card-header">
-                        <i class="bi bi-box-seam me-2"></i>Produk Tersedia
-                    </div>
-                    <div class="card-body">
-                        <div class="product-grid">
-                            <% if (daftarProduk.length === 0) { %>
-                                <div class="empty-state">
-                                    <div class="empty-icon"><i class="bi bi-box"></i></div>
-                                    <h5>Belum Ada Produk</h5>
-                                    <p>Belum ada produk gas yang tersedia saat ini.</p>
+                            <h5 class="fw-bold"><%= user.username %></h5>
+                            <span class="badge-gas <%= user.sub_role === 'rumahtangga' ? 'badge-pending' : 'badge-approved' %>">
+                                <%= user.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %>
+                            </span>
+                            <a href="/pembeli/edit-profil" class="btn btn-gas btn-gas-accent btn-gas-sm w-100 mb-3">
+                                <i class="bi bi-pencil"></i> Edit Profil
+                            </a>
+                            <hr>
+                            <div class="text-start">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted"><i class="bi bi-fire"></i> Gas 3Kg</span>
+                                    <strong class="<%= sisa3Kg <= 0 && maks3Kg > 0 ? 'text-danger' : 'text-success' %>">
+                                        <%= total3KgMingguIni %>/<%= maks3Kg %> tabung
+                                    </strong>
                                 </div>
-                            <% } else { %>
-                                <% daftarProduk.forEach(p => { %>
-                                <div class="product-card">
-                                    <div class="product-image">
-                                        <i class="bi bi-fuel-pump"></i>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Status Tabung</span>
+                                    <strong class="<%= saldoTabung >= 0 ? 'text-gas-primary' : 'text-gas-accent' %>">
+                                        <%= saldoTabung >= 0 ? 'Simpan: ' + saldoTabung : 'Pinjam: ' + Math.abs(saldoTabung) %>
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BATAS GAS 3KG -->
+                    <div class="card-gas">
+                        <div class="card-header">
+                            <i class="bi bi-fire me-2"></i>Batas Gas 3Kg
+                        </div>
+                        <div class="card-body">
+                            <% if (maks3Kg > 0) { %>
+                            <p class="mb-2 text-muted small">
+                                <% if (user.sub_role === 'rumahtangga') { %>
+                                    Rumah Tangga: maksimal <strong>1 tabung</strong> Gas 3Kg per minggu.
+                                <% } else { %>
+                                    Usaha Mikro: maksimal <strong>3 tabung</strong> Gas 3Kg per minggu.
+                                <% } %>
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Sudah dibeli minggu ini</span>
+                                <strong><%= total3KgMingguIni %> / <%= maks3Kg %> tabung</strong>
+                            </div>
+                            <div class="progress" style="height:8px;">
+                                <div class="progress-bar <%= sisa3Kg > 0 ? 'bg-success' : 'bg-danger' %>" role="progressbar" style="width: <%= (total3KgMingguIni / maks3Kg) * 100 %>%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="text-muted">Terpakai</small>
+                                <strong class="<%= sisa3Kg > 0 ? 'text-success' : 'text-danger' %> small">
+                                    Sisa: <%= sisa3Kg %> tabung
+                                </strong>
+                            </div>
+                            <% } %>
+                            <p class="mb-0 mt-2 text-muted small"><i class="bi bi-info-circle"></i> Produk lain (5Kg, 12Kg) bebas tanpa batas.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: PRODUK TERSEDIA -->
+                <div class="col-lg-8 reveal-right">
+                    <div class="card-gas">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-box-seam me-2"></i>Produk Tersedia</span>
+                            <span class="badge-gas badge-done"><%= daftarProduk.length %> produk</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="product-grid">
+                                <% if (daftarProduk.length === 0) { %>
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="bi bi-box"></i></div>
+                                        <h5>Belum Ada Produk</h5>
+                                        <p>Belum ada produk gas yang tersedia saat ini.</p>
                                     </div>
-                                    <div class="product-body">
-                                        <h6><%= p.nama %></h6>
-                                        <div class="product-price">Rp<%= p.harga.toLocaleString() %></div>
-                                        <div class="product-meta">
-                                            <span class="text-muted"><i class="bi bi-box-seam"></i> Stok</span>
-                                            <span class="badge-gas <%= p.stok > 10 ? 'badge-approved' : p.stok > 0 ? 'badge-pending' : 'badge-rejected' %>"><%= p.stok %></span>
+                                <% } else { %>
+                                    <% daftarProduk.forEach(p => { %>
+                                    <div class="product-card">
+                                        <div class="product-image">
+                                            <i class="bi bi-fire"></i>
+                                        </div>
+                                        <div class="product-body">
+                                            <h6><%= p.nama %></h6>
+                                            <div class="product-price">Rp<%= p.harga.toLocaleString() %></div>
+                                            <div class="product-meta">
+                                                <span class="text-muted"><i class="bi bi-box-seam"></i> Stok</span>
+                                                <span class="badge-gas <%= p.stok > 10 ? 'badge-approved' : p.stok > 0 ? 'badge-pending' : 'badge-rejected' %>"><%= p.stok %></span>
+                                            </div>
+                                        </div>
+                                        <div class="product-footer">
+                                            <button class="btn btn-gas btn-gas-primary btn-gas-sm w-100" onclick="switchTab(null, 'tab-pesan')">
+                                                <i class="bi bi-cart-plus"></i> Pesan Sekarang
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
-                                <% }) %>
-                            <% } %>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PESAN GAS -->
-                <div class="card-gas mb-4">
-                    <div class="card-header" style="background:var(--primary);color:var(--white);">
-                        <i class="bi bi-cart-plus me-2"></i>Pesan Gas
-                    </div>
-                    <div class="card-body">
-                        <form action="/pembeli/pesan" method="POST" class="form-gas row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Pilih Produk</label>
-                                <select name="produk_id" class="form-select" required>
-                                    <option value="">-- Pilih Produk --</option>
-                                    <% daftarProduk.forEach(p => { %>
-                                        <% const is3Kg = p.nama.toLowerCase().includes('3kg'); %>
-                                        <option value="<%= p.id %>" <%= (is3Kg && sisa3Kg <= 0 && maks3Kg > 0) ? 'disabled' : '' %>>
-                                            <%= p.nama %> - Rp<%= p.harga.toLocaleString() %> (Stok: <%= p.stok %>)
-                                            <%= (is3Kg && sisa3Kg <= 0 && maks3Kg > 0) ? ' - (Kuota habis)' : '' %>
-                                        </option>
                                     <% }) %>
-                                </select>
+                                <% } %>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Jumlah</label>
-                                <input type="number" name="jumlah" class="form-control" min="1" value="1" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Metode Pengiriman</label>
-                                <select name="metode" class="form-select">
-                                    <option value="ambil">Ambil di Pangkalan</option>
-                                    <option value="kirim">Kirim (Delivery)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Metode Pembayaran</label>
-                                <select name="metode_pembayaran" class="form-select" required>
-                                    <option value="">-- Pilih Pembayaran --</option>
-                                    <option value="cod">COD / Bayar di Tempat</option>
-                                    <option value="transfer">Transfer Bank</option>
-                                    <option value="qris">QRIS</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 d-flex align-items-end">
-                                <button type="submit" class="btn btn-gas btn-gas-success btn-gas-lg w-100">
-                                    <i class="bi bi-cart-check"></i> Buat Pesanan
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- RIWAYAT TRANSAKSI -->
-                <div class="card-gas">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-clock-history me-2"></i>Riwayat Transaksi</span>
-                        <span class="badge badge-done"><%= totalItems %> transaksi</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table-gas mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Produk</th>
-                                        <th>Jumlah</th>
-                                        <th>Harga</th>
-                                        <th>Total</th>
-                                        <th>Metode</th>
-                                        <th>Status</th>
-                                        <th>Tanggal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% if (riwayatTransaksi.length === 0) { %>
-                                    <tr>
-                                        <td colspan="7">
-                                            <div class="empty-state">
-                                                <div class="empty-icon"><i class="bi bi-receipt"></i></div>
-                                                <h5>Belum Ada Transaksi</h5>
-                                                <p>Pesan gas untuk mulai mencatat riwayat transaksi.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <% } else { %>
-                                    <% riwayatTransaksi.forEach(t => { %>
-                                    <tr>
-                                        <td class="fw-bold"><%= t.Produk ? t.Produk.nama : '-' %></td>
-                                        <td><%= t.jumlah_beli %></td>
-                                        <td><%= t.Produk ? 'Rp' + t.Produk.harga.toLocaleString() : '-' %></td>
-                                        <td class="fw-bold text-gas-primary"><%= t.Produk ? 'Rp' + (t.Produk.harga * t.jumlah_beli).toLocaleString() : '-' %></td>
-                                        <td>
-                                            <span class="badge-gas <%= t.metode === 'kirim' ? 'badge-approved' : 'badge-pending' %>">
-                                                <i class="bi <%= t.metode === 'kirim' ? 'bi-truck' : 'bi-walk' %>"></i>
-                                                <%= t.metode === 'kirim' ? 'Dikirim' : 'Diambil' %>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <% let badgeClass = 'bg-secondary'; %>
-                                            <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
-                                            <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
-                                            <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
-                                            <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
-                                            <span class="badge-gas <%= badgeClass %>">
-                                                <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
-                                                <%= t.status %>
-                                            </span>
-                                        </td>
-                                        <td><%= new Date(t.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
-                                    </tr>
-                                    <% }) } %>
-                                </tbody>
-                            </table>
                         </div>
-                        <% if (totalPages > 1) { %>
-                        <div class="d-flex justify-content-center py-3">
-                            <nav>
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
-                                        <a class="page-link" href="?page=<%= currentPage - 1 %>">
-                                            <i class="bi bi-chevron-left"></i> Previous
-                                        </a>
-                                    </li>
-                                    <% for (let i = 1; i <= totalPages; i++) { %>
-                                    <li class="page-item <%= i === currentPage ? 'active' : '' %>">
-                                        <a class="page-link" href="?page=<%= i %>"><%= i %></a>
-                                    </li>
-                                    <% } %>
-                                    <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
-                                        <a class="page-link" href="?page=<%= currentPage + 1 %>">
-                                            Next <i class="bi bi-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
-                        <% } %>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- ============================================
+             TAB: PESAN GAS
+             ============================================ -->
+        <div class="tab-panel" id="tab-pesan">
+            <div class="row g-4 justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card-gas">
+                        <div class="card-header" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: var(--white); border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+                            <i class="bi bi-cart-plus me-2"></i>Buat Pesanan Gas
+                        </div>
+                        <div class="card-body">
+                            <form action="/pembeli/pesan" method="POST" class="form-gas row g-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Pilih Produk</label>
+                                    <select name="produk_id" class="form-select" required>
+                                        <option value="">-- Pilih Produk --</option>
+                                        <% daftarProduk.forEach(p => { %>
+                                            <% const is3Kg = p.nama.toLowerCase().includes('3kg'); %>
+                                            <option value="<%= p.id %>" <%= (is3Kg && sisa3Kg <= 0 && maks3Kg > 0) ? 'disabled' : '' %>>
+                                                <%= p.nama %> - Rp<%= p.harga.toLocaleString() %> (Stok: <%= p.stok %>)
+                                                <%= (is3Kg && sisa3Kg <= 0 && maks3Kg > 0) ? ' - (Kuota habis)' : '' %>
+                                            </option>
+                                        <% }) %>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Jumlah</label>
+                                    <input type="number" name="jumlah" class="form-control" min="1" value="1" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Metode Pengiriman</label>
+                                    <select name="metode" class="form-select">
+                                        <option value="ambil">Ambil di Pangkalan</option>
+                                        <option value="kirim">Kirim (Delivery)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Metode Pembayaran</label>
+                                    <select name="metode_pembayaran" class="form-select" required>
+                                        <option value="">-- Pilih Pembayaran --</option>
+                                        <option value="cod">COD / Bayar di Tempat</option>
+                                        <option value="transfer">Transfer Bank</option>
+                                        <option value="qris">QRIS</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-gas btn-gas-success btn-gas-lg w-100">
+                                        <i class="bi bi-cart-check"></i> Buat Pesanan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Quick info card -->
+                    <div class="card-gas mt-4">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start gap-3">
+                                <div style="width:44px;height:44px;border-radius:12px;background:var(--info-light);color:var(--info);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">
+                                    <i class="bi bi-info-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Informasi Kuota Gas 3Kg</h6>
+                                    <p class="text-muted small mb-0">
+                                        <% if (user.sub_role === 'rumahtangga') { %>
+                                            Rumah Tangga: maksimal <strong>1 tabung</strong> per minggu. Sudah digunakan <strong><%= total3KgMingguIni %>/<%= maks3Kg %></strong> minggu ini.
+                                        <% } else { %>
+                                            Usaha Mikro: maksimal <strong>3 tabung</strong> per minggu. Sudah digunakan <strong><%= total3KgMingguIni %>/<%= maks3Kg %></strong> minggu ini.
+                                        <% } %>
+                                        Produk lain (5Kg, 12Kg) tidak ada batasan.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             TAB: RIWAYAT TRANSAKSI
+             ============================================ -->
+        <div class="tab-panel" id="tab-riwayat">
+            <div class="card-gas">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history me-2"></i>Riwayat Transaksi</span>
+                    <span class="badge badge-done"><%= totalItems %> transaksi</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table-gas mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Produk</th>
+                                    <th>Jumlah</th>
+                                    <th>Harga</th>
+                                    <th>Total</th>
+                                    <th>Metode</th>
+                                    <th>Status</th>
+                                    <th>Tanggal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (riwayatTransaksi.length === 0) { %>
+                                <tr>
+                                    <td colspan="7">
+                                        <div class="empty-state">
+                                            <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+                                            <h5>Belum Ada Transaksi</h5>
+                                            <p>Pesan gas untuk mulai mencatat riwayat transaksi.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <% } else { %>
+                                <% riwayatTransaksi.forEach(t => { %>
+                                <tr>
+                                    <td class="fw-bold"><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                    <td><%= t.jumlah_beli %></td>
+                                    <td><%= t.Produk ? 'Rp' + t.Produk.harga.toLocaleString() : '-' %></td>
+                                    <td class="fw-bold text-gas-primary"><%= t.Produk ? 'Rp' + (t.Produk.harga * t.jumlah_beli).toLocaleString() : '-' %></td>
+                                    <td>
+                                        <span class="badge-gas <%= t.metode === 'kirim' ? 'badge-approved' : 'badge-pending' %>">
+                                            <i class="bi <%= t.metode === 'kirim' ? 'bi-truck' : 'bi-walk' %>"></i>
+                                            <%= t.metode === 'kirim' ? 'Dikirim' : 'Diambil' %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <% let badgeClass = 'bg-secondary'; %>
+                                        <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
+                                        <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
+                                        <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
+                                        <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
+                                        <span class="badge-gas <%= badgeClass %>">
+                                            <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
+                                            <%= t.status %>
+                                        </span>
+                                    </td>
+                                    <td><%= new Date(t.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
+                                </tr>
+                                <% }) } %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% if (totalPages > 1) { %>
+                    <div class="d-flex justify-content-center py-3">
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
+                                    <a class="page-link" href="?page=<%= currentPage - 1 %>">
+                                        <i class="bi bi-chevron-left"></i> Previous
+                                    </a>
+                                </li>
+                                <% for (let i = 1; i <= totalPages; i++) { %>
+                                <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                                    <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                                </li>
+                                <% } %>
+                                <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
+                                    <a class="page-link" href="?page=<%= currentPage + 1 %>">
+                                        Next <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js"></script>
+<script>
+// Tab switching logic for pembeli dashboard
+function switchTab(event, tabId) {
+    if (event) event.preventDefault();
+
+    // Hide all tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+
+    // Deactivate all nav links
+    document.querySelectorAll('.sidebar-menu .nav-link[data-tab]').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Show selected tab
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.add('active');
+    }
+
+    // Activate the clicked nav link
+    const navLink = document.querySelector('.sidebar-menu .nav-link[data-tab="' + tabId + '"]');
+    if (navLink) {
+        navLink.classList.add('active');
+    }
+
+    // Scroll to top of content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Store in session
+    sessionStorage.setItem('pembeli_active_tab', tabId);
+}
+
+// Restore tab on page load (e.g. after form submission redirect)
+document.addEventListener('DOMContentLoaded', function() {
+    // Check URL query param 'tab' first
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && document.getElementById(tabParam)) {
+        switchTab(null, tabParam);
+        return;
+    }
+
+    // If there's a success/error alert about pesanan, auto-switch to riwayat
+    const alertEl = document.querySelector('.alert-gas-success');
+    if (alertEl && alertEl.textContent.includes('Pesanan berhasil')) {
+        switchTab(null, 'tab-riwayat');
+        return;
+    }
+
+    // Otherwise restore from session
+    const savedTab = sessionStorage.getItem('pembeli_active_tab');
+    if (savedTab && document.getElementById(savedTab)) {
+        switchTab(null, savedTab);
+    }
+});
+</script>
+<style>
+/* Tab panel animation */
+.tab-panel {
+    display: none;
+    animation: tabFadeIn 0.35s ease-out;
+}
+.tab-panel.active {
+    display: block;
+}
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 </body>
 </html>
