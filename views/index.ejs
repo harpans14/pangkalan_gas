@@ -242,7 +242,7 @@
                     <div class="d-flex flex-column gap-2">
                         <a href="/pangkalan/daftar-pelanggan">Daftar Pelanggan</a>
                         <a href="/login">Pesanan Gas</a>
-                        <a href="/login">Cek Stok</a>
+                        <a href="<%= session && session.role === 'pangkalan' ? '/pangkalan/tabung' : '/login' %>">Cek Stok</a>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-4">
