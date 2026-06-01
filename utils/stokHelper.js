@@ -3,6 +3,12 @@ const { Op } = require('sequelize');
 
 const JENIS_TABUNG_LIST = ['3Kg', '5Kg', '12Kg'];
 
+const DEFAULT_TOTAL = {
+    '3Kg': 160,
+    '5Kg': 20,
+    '12Kg': 10
+};
+
 function extractJenisDariNama(nama) {
     if (!nama) return null;
     const normalized = nama.toLowerCase().replace(/\s+/g, '');
@@ -29,7 +35,12 @@ async function syncProdukStok(jenis_tabung, produkInstance) {
 async function cariAtauBuatTabungStok(jenis) {
     let stok = await TabungStok.findOne({ where: { jenis } });
     if (!stok) {
-        stok = await TabungStok.create({ jenis, jumlah_isi: 0, jumlah_kosong: 0 });
+        stok = await TabungStok.create({
+            jenis,
+            jumlah_isi: 0,
+            jumlah_kosong: 0,
+            total: DEFAULT_TOTAL[jenis] || 0
+        });
     }
     return stok;
 }

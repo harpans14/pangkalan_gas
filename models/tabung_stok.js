@@ -9,7 +9,8 @@ module.exports = (sequelize, DataTypes) => {
   TabungStok.init({
     jenis: DataTypes.STRING,
     jumlah_isi: DataTypes.INTEGER,
-    jumlah_kosong: DataTypes.INTEGER
+    jumlah_kosong: DataTypes.INTEGER,
+    total: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'TabungStok',

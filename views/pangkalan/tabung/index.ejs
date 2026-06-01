@@ -78,6 +78,7 @@
                 else if (error === 'gagal') { alertMsg = 'Gagal memproses data!'; alertType = 'danger'; }
                 else if (error === 'tidak_ditemukan') { alertMsg = 'Data tidak ditemukan!'; alertType = 'danger'; }
                 else if (error === 'stok_kurang') { alertMsg = 'Stok tabung isi tidak mencukupi!'; alertType = 'danger'; }
+                else if (error === 'stok_kosong_kurang') { alertMsg = 'Tidak bisa meminjamkan tabung — stok tabung kosong habis!'; alertType = 'danger'; }
                 else if (error === 'tidak_bisa_ubah') { alertMsg = 'Tidak bisa mengubah data yang sudah selesai!'; alertType = 'danger'; }
                 else if (error === 'sudah_selesai') { alertMsg = 'Transaksi ini sudah selesai sebelumnya!'; alertType = 'warning'; }
             %>
@@ -113,7 +114,7 @@
                         <div class="card-stat-icon"><i class="bi bi-arrow-down-circle"></i></div>
                         <div class="card-stat-body">
                             <div class="card-stat-value"><%= totalTitip %></div>
-                            <div class="card-stat-label">Dititip Pelanggan</div>
+                            <div class="card-stat-label">Tabung Disimpan</div>
                         </div>
                     </div>
                 </div>
@@ -122,7 +123,7 @@
                         <div class="card-stat-icon"><i class="bi bi-arrow-up-circle"></i></div>
                         <div class="card-stat-body">
                             <div class="card-stat-value"><%= totalPinjam %></div>
-                            <div class="card-stat-label">Dipinjam Pelanggan</div>
+                            <div class="card-stat-label">Tabung Dipinjam</div>
                         </div>
                     </div>
                 </div>
@@ -134,15 +135,24 @@
                     <div class="card-gas">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span><i class="bi bi-fire me-2"></i>Tabung <%= s.jenis %></span>
+                            <span class="badge bg-gas-primary">Total: <%= s.total || 0 %></span>
                         </div>
                         <div class="card-body">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Jumlah Isi</span>
                                 <strong class="text-gas-primary"><%= s.jumlah_isi || 0 %></strong>
                             </div>
-                            <div class="d-flex justify-content-between">
+                            <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Jumlah Kosong</span>
                                 <strong class="text-gas-accent"><%= s.jumlah_kosong || 0 %></strong>
+                            </div>
+                            <div class="progress mt-2" style="height:6px;">
+                                <% const pct = s.total > 0 ? ((s.jumlah_isi || 0) / s.total * 100) : 0; %>
+                                <div class="progress-bar bg-success" role="progressbar" style="width:<%= pct %>%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="text-muted">Isi</small>
+                                <small class="text-muted">Kosong: <%= Math.max(0, s.jumlah_kosong || 0) %></small>
                             </div>
                         </div>
                     </div>
@@ -153,7 +163,7 @@
             <% if (belumKembali.length > 0) { %>
             <div class="alert alert-gas alert-gas-warning alert-dismissible fade show reveal" role="alert" data-auto-dismiss="10000">
                 <i class="bi bi-exclamation-triangle-fill"></i>
-                <strong><%= belumKembali.length %> tabung</strong> masih dipinjam pelanggan dan belum dikembalikan!
+                <strong><%= belumKembali.length %> tabung</strong> masih dipinjam dan belum dikembalikan!
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             <% } %>
@@ -166,15 +176,20 @@
                     <form action="/pangkalan/tabung/tambah" method="POST" class="row g-3 form-gas">
                         <div class="col-md-2">
                             <label class="form-label">Tipe <span class="text-danger">*</span></label>
-                            <select name="tipe" class="form-select" required>
-                                <option value="">-- Pilih --</option>
-                                <option value="titip">Titip (Simpan)</option>
-                                <option value="pinjam">Pinjam (Ambil)</option>
-                            </select>
+                                <select name="tipe" class="form-select" required>
+                                    <option value="">-- Pilih --</option>
+                                    <option value="titip">Menyimpan Tabung</option>
+                                    <option value="pinjam">Meminjam Tabung</option>
+                                </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Nama Pelanggan <span class="text-danger">*</span></label>
-                            <input type="text" name="nama_pelanggan" class="form-control" required placeholder="Nama pelanggan">
+                            <select name="nama_pelanggan" class="form-select" required>
+                                <option value="">-- Pilih Pelanggan --</option>
+                                <% pelangganList.forEach(p => { %>
+                                    <option value="<%= p.username %>"><%= p.username %> <%= p.sub_role !== 'none' ? '(' + p.sub_role.replace('_', ' ') + ')' : '' %></option>
+                                <% }) %>
+                            </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Jenis Tabung <span class="text-danger">*</span></label>
@@ -242,9 +257,9 @@
                                 <tr>
                                     <td>
                                         <% if (d.tipe === 'titip') { %>
-                                            <span class="badge-gas badge-done"><i class="bi bi-arrow-down-circle"></i> Titip</span>
+                                            <span class="badge-gas badge-done"><i class="bi bi-arrow-down-circle"></i> Menyimpan</span>
                                         <% } else { %>
-                                            <span class="badge-gas badge-acc"><i class="bi bi-arrow-up-circle"></i> Pinjam</span>
+                                            <span class="badge-gas badge-acc"><i class="bi bi-arrow-up-circle"></i> Meminjam</span>
                                         <% } %>
                                     </td>
                                     <td class="fw-bold"><%= d.nama_pelanggan %></td>
@@ -253,7 +268,11 @@
                                     <td><%= new Date(d.tanggal).toLocaleDateString('id-ID') %></td>
                                     <td>
                                         <% if (d.status === 'aktif') { %>
-                                            <span class="badge-gas badge-pending"><i class="bi bi-clock"></i> Aktif</span>
+                                            <% if (d.tipe === 'pinjam') { %>
+                                                <span class="badge-gas badge-pending"><i class="bi bi-clock"></i> Belum Dikembalikan</span>
+                                            <% } else { %>
+                                                <span class="badge-gas badge-pending"><i class="bi bi-clock"></i> Aktif</span>
+                                            <% } %>
                                         <% } else { %>
                                             <span class="badge-gas badge-approved"><i class="bi bi-check-circle"></i> Selesai</span>
                                         <% } %>
@@ -293,7 +312,7 @@
             <div class="modal-header bg-gas-primary text-white">
                 <h5 class="modal-title">
                     <i class="bi bi-check-lg me-2"></i>
-                    <%= d.tipe === 'titip' ? 'Ambil Titipan' : 'Kembalikan Pinjaman' %> Tabung
+                    <%= d.tipe === 'titip' ? 'Ambil Tabung' : 'Kembalikan Tabung' %>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -301,7 +320,7 @@
                 <div class="modal-body">
                     <p>
                         <% if (d.tipe === 'titip') { %>
-                            Konfirmasi <strong><%= d.nama_pelanggan %></strong> mengambil <strong><%= d.jumlah %></strong> tabung <strong><%= d.jenis_tabung %></strong> yang dititipkan?
+                            Konfirmasi <strong><%= d.nama_pelanggan %></strong> mengambil <strong><%= d.jumlah %></strong> tabung <strong><%= d.jenis_tabung %></strong> yang disimpan?
                         <% } else { %>
                             Konfirmasi <strong><%= d.nama_pelanggan %></strong> mengembalikan <strong><%= d.jumlah %></strong> tabung <strong><%= d.jenis_tabung %></strong> yang dipinjam?
                         <% } %>
@@ -328,13 +347,18 @@
                     <div class="mb-3">
                         <label class="form-label">Tipe</label>
                         <select name="tipe" class="form-select" required>
-                            <option value="titip" <%= d.tipe === 'titip' ? 'selected' : '' %>>Titip (Simpan)</option>
-                            <option value="pinjam" <%= d.tipe === 'pinjam' ? 'selected' : '' %>>Pinjam (Ambil)</option>
+                            <option value="titip" <%= d.tipe === 'titip' ? 'selected' : '' %>>Menyimpan Tabung</option>
+                            <option value="pinjam" <%= d.tipe === 'pinjam' ? 'selected' : '' %>>Meminjam Tabung</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nama Pelanggan</label>
-                        <input type="text" name="nama_pelanggan" class="form-control" value="<%= d.nama_pelanggan %>" required>
+                        <select name="nama_pelanggan" class="form-select" required>
+                            <option value="">-- Pilih Pelanggan --</option>
+                            <% pelangganList.forEach(p => { %>
+                                <option value="<%= p.username %>" <%= d.nama_pelanggan === p.username ? 'selected' : '' %>><%= p.username %> <%= p.sub_role !== 'none' ? '(' + p.sub_role.replace('_', ' ') + ')' : '' %></option>
+                            <% }) %>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Jenis Tabung</label>
@@ -384,7 +408,6 @@
             <form action="/pangkalan/tabung/hapus/<%= d.id %>" method="POST">
                 <div class="modal-body">
                     <p>Yakin hapus transaksi <strong><%= d.nama_pelanggan %></strong>?</p>
-                    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Stok tabung akan disesuaikan otomatis.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-gas btn-gas-secondary" data-bs-dismiss="modal">Batal</button>

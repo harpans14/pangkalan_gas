@@ -1,4 +1,4 @@
-const { Transaksi, User, Produk, BarangMasuk, TabungStok, CarouselImage, WebsiteInfo } = require('../models');
+const { Transaksi, User, Produk, BarangMasuk, TabungStok, TabungTransaksi, CarouselImage, WebsiteInfo } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
@@ -73,6 +73,7 @@ exports.accPesanan = async (req, res) => {
                 return res.redirect('/pangkalan/pesan-masuk?error=stok_tidak_cukup');
             }
             tabungStok.jumlah_isi -= transaksi.jumlah_beli;
+            tabungStok.jumlah_kosong += transaksi.jumlah_beli;
             await tabungStok.save();
             await syncProdukStok(jenis);
         } else {
@@ -197,10 +198,12 @@ exports.getBarangMasuk = async (req, res) => {
 
         const produkList = await Produk.findAll({ where: { createdBy: req.session.userId } });
 
+        const tabungStokList = await TabungStok.findAll();
+
         const success = req.query.success || null;
         const error = req.query.error || null;
 
-        res.render('pangkalan/barang_masuk', { barangMasuk, produkList, success, error });
+        res.render('pangkalan/barang_masuk', { barangMasuk, produkList, tabungStokList, success, error });
     } catch (error) {
         console.error("ERROR BARANG MASUK:", error);
         res.status(500).send("Gagal memuat data barang masuk: " + error.message);
@@ -234,6 +237,10 @@ exports.tambahBarangMasuk = async (req, res) => {
         const jenis = extractJenisDariNama(produk.nama);
         if (jenis) {
             const tabungStok = await cariAtauBuatTabungStok(jenis);
+            if ((tabungStok.jumlah_kosong || 0) < jml) {
+                return res.redirect('/pangkalan/barang-masuk?error=stok_kosong_tidak_cukup');
+            }
+            tabungStok.jumlah_kosong = (tabungStok.jumlah_kosong || 0) - jml;
             tabungStok.jumlah_isi = (tabungStok.jumlah_isi || 0) + jml;
             await tabungStok.save();
             await syncProdukStok(jenis);
@@ -589,6 +596,7 @@ exports.prosesTransaksiLangsung = async (req, res) => {
                 return res.redirect('/pangkalan/transaksi-langsung?error=stok_tidak_cukup&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
             }
             tabungStok.jumlah_isi -= jml;
+            tabungStok.jumlah_kosong += jml;
             await tabungStok.save();
             await syncProdukStok(jenis);
         } else {

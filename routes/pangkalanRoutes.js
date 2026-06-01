@@ -22,8 +22,6 @@ router.post('/carousel/info', pangkalanController.updateWebsiteInfo);
 
 router.get('/barang-masuk', pangkalanController.getBarangMasuk);
 router.post('/tambah-barang-masuk', pangkalanController.tambahBarangMasuk);
-router.post('/edit-barang-masuk/:id', pangkalanController.editBarangMasuk);
-router.post('/hapus-barang-masuk/:id', pangkalanController.hapusBarangMasuk);
 
 router.get('/riwayat-transaksi', pangkalanController.getRiwayatTransaksi);
 router.get('/laporan', pangkalanController.laporanPenjualan);
