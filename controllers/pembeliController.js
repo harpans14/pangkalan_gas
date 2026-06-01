@@ -1,6 +1,8 @@
 const { User, Transaksi, LogTabung, Produk } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
+const path = require('path');
+const fs = require('fs');
 
 exports.getDashboard = async (req, res) => {
     try {
@@ -11,24 +13,36 @@ exports.getDashboard = async (req, res) => {
             return res.status(404).send("User tidak ditemukan!");
         }
 
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - 7);
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        monday.setHours(0, 0, 0, 0);
 
         const produk3Kg = await Produk.findOne({
             where: { nama: { [Op.like]: '%3Kg%' } }
         });
 
-        let sudahBeli3Kg = false;
+        let total3KgMingguIni = 0;
+        let maks3Kg = 0;
+        let sisa3Kg = 0;
         if (produk3Kg) {
-            const transaksi3Kg = await Transaksi.findOne({
+            if (user.sub_role === 'rumahtangga') {
+                maks3Kg = 1;
+            } else if (user.sub_role === 'usaha_mikro') {
+                maks3Kg = 3;
+            }
+            const trans3Kg = await Transaksi.findAll({
                 where: {
                     user_id: userId,
                     produk_id: produk3Kg.id,
                     status: { [Op.in]: ['pending', 'disetujui', 'selesai'] },
-                    createdAt: { [Op.gte]: startOfWeek }
+                    createdAt: { [Op.gte]: monday }
                 }
             });
-            sudahBeli3Kg = !!transaksi3Kg;
+            total3KgMingguIni = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+            sisa3Kg = Math.max(0, maks3Kg - total3KgMingguIni);
         }
 
         const saldoTabung = await LogTabung.sum('jumlah_tabung', {
@@ -53,7 +67,7 @@ exports.getDashboard = async (req, res) => {
 
         const success = req.query.success || null;
         const error = req.query.error || null;
-        res.render('pembeli/dashboard', { user, saldoTabung, daftarProduk, riwayatTransaksi, success, error, sudahBeli3Kg, produk3Kg, currentPage: page, totalPages, totalItems });
+        res.render('pembeli/dashboard', { user, saldoTabung, daftarProduk, riwayatTransaksi, success, error, produk3Kg, total3KgMingguIni, maks3Kg, sisa3Kg, currentPage: page, totalPages, totalItems });
     } catch (error) {
         console.error("EROR DASHBOARD:", error);
         res.status(500).send("Detail Error Dashboard: " + error.message);
@@ -99,7 +113,7 @@ exports.updateProfil = async (req, res) => {
 exports.pesanGas = async (req, res) => {
     try {
         const userId = req.session.userId;
-        const { produk_id, jumlah, metode } = req.body;
+        const { produk_id, jumlah, metode, metode_pembayaran } = req.body;
 
         const jml = parseInt(jumlah);
         if (!produk_id || isNaN(jml) || jml < 1) {
@@ -107,6 +121,10 @@ exports.pesanGas = async (req, res) => {
         }
 
         if (!['ambil', 'kirim'].includes(metode)) {
+            return res.redirect('/pembeli/dashboard?error=invalid_metode');
+        }
+
+        if (!['cod', 'transfer', 'qris'].includes(metode_pembayaran)) {
             return res.redirect('/pembeli/dashboard?error=invalid_metode');
         }
 
@@ -122,35 +140,137 @@ exports.pesanGas = async (req, res) => {
         const isGas3Kg = produk.nama.toLowerCase().includes('3kg');
 
         if (isGas3Kg) {
-            const startOfWeek = new Date();
-            startOfWeek.setDate(startOfWeek.getDate() - 7);
+            const user = await User.findByPk(userId);
+            let maks3Kg = 0;
+            if (user.sub_role === 'rumahtangga') {
+                maks3Kg = 1;
+            } else if (user.sub_role === 'usaha_mikro') {
+                maks3Kg = 3;
+            }
 
-            const sudahBeli3Kg = await Transaksi.findOne({
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - diff);
+            monday.setHours(0, 0, 0, 0);
+
+            const trans3Kg = await Transaksi.findAll({
                 where: {
                     user_id: userId,
                     produk_id: produk_id,
                     status: { [Op.in]: ['pending', 'disetujui', 'selesai'] },
-                    createdAt: { [Op.gte]: startOfWeek }
+                    createdAt: { [Op.gte]: monday }
                 }
             });
+            const sudahBeli = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
 
-            if (sudahBeli3Kg) {
+            if (sudahBeli + jml > maks3Kg) {
                 return res.redirect('/pembeli/dashboard?error=kuota_3kg_habis');
             }
         }
 
-        await Transaksi.create({
+        const statusPembayaran = metode_pembayaran === 'cod' ? 'lunas' : 'belum_bayar';
+
+        const transaksi = await Transaksi.create({
             user_id: userId,
             produk_id: produk_id || null,
             jumlah_beli: jml,
             metode,
+            metode_pembayaran,
+            status_pembayaran: statusPembayaran,
             status: 'pending',
             tanggal: new Date()
         });
 
-        res.redirect('/pembeli/dashboard?success=true');
+        if (metode_pembayaran === 'cod') {
+            return res.redirect('/pembeli/dashboard?success=true');
+        }
+
+        res.redirect('/pembeli/pembayaran/' + transaksi.id);
     } catch (error) {
         console.error("EROR PESAN GAS:", error);
         res.status(500).send("Detail Error Pesan: " + error.message);
+    }
+};
+
+exports.getPembayaran = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const transaksi = await Transaksi.findByPk(req.params.id, {
+            include: [{ model: Produk }]
+        });
+
+        if (!transaksi || transaksi.user_id !== userId) {
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        const totalHarga = (transaksi.Produk ? transaksi.Produk.harga : 0) * transaksi.jumlah_beli;
+        const error = req.query.error || null;
+
+        res.render('pembeli/pembayaran', { transaksi, totalHarga, error });
+    } catch (error) {
+        console.error("EROR HALAMAN PEMBAYARAN:", error);
+        res.status(500).send("Terjadi kesalahan: " + error.message);
+    }
+};
+
+exports.uploadBukti = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.redirect('/pembeli/pembayaran/' + req.params.id + '?error=no_file');
+        }
+
+        const userId = req.session.userId;
+        const transaksi = await Transaksi.findByPk(req.params.id);
+
+        if (!transaksi || transaksi.user_id !== userId) {
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        if (transaksi.status_pembayaran !== 'belum_bayar') {
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.redirect('/pembeli/pembayaran/' + req.params.id + '?error=sudah_dibayar');
+        }
+
+        transaksi.bukti_pembayaran = '/uploads/bukti_pembayaran/' + req.file.filename;
+        transaksi.status_pembayaran = 'menunggu_verifikasi';
+        await transaksi.save();
+
+        res.redirect('/pembeli/dashboard?success=upload_berhasil');
+    } catch (error) {
+        console.error("EROR UPLOAD BUKTI:", error);
+        if (req.file) {
+            try { fs.unlinkSync(req.file.path); } catch (e) {}
+        }
+        res.status(500).send("Terjadi kesalahan: " + error.message);
+    }
+};
+
+exports.getStruk = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const transaksi = await Transaksi.findByPk(req.params.id, {
+            include: [
+                { model: User, attributes: ['username', 'alamat'] },
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ]
+        });
+
+        if (!transaksi || transaksi.user_id !== userId) {
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        const totalHarga = (transaksi.Produk ? transaksi.Produk.harga : 0) * transaksi.jumlah_beli;
+
+        res.render('pembeli/struk', { transaksi, totalHarga });
+    } catch (error) {
+        console.error("EROR STRUK:", error);
+        res.status(500).send("Terjadi kesalahan: " + error.message);
     }
 };

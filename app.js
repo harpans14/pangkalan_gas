@@ -3,6 +3,11 @@ const path = require('path');
 const session = require('express-session');
 const app = express();
 
+const db = require('./models');
+db.sequelize.sync()
+    .then(() => console.log('Database synced successfully.'))
+    .catch(err => console.error('Database sync failed:', err));
+
 const pangkalanRoutes = require('./routes/pangkalanRoutes');
 const pembeliRoutes = require('./routes/pembeliRoutes');
 const tabungRoutes = require('./routes/tabungRoutes');
@@ -38,7 +43,34 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use(async (req, res, next) => {
+    try {
+        let info = await db.WebsiteInfo.findOne();
+        if (!info) {
+            info = await db.WebsiteInfo.create({
+                description: 'Sistem distribusi gas LPG terpercaya untuk memudahkan pengelolaan penjualan, stok, dan laporan pangkalan gas di seluruh Indonesia.',
+                address: 'Pangkalan Gas Utama, Kota Bandung, Jawa Barat',
+                phone: '0857-1234-5678',
+                email: 'info@pangkalan-gas.id'
+            });
+        }
+        res.locals.websiteInfo = info;
+    } catch (err) {
+        console.error('Error loading WebsiteInfo:', err);
+        res.locals.websiteInfo = {
+            description: 'Sistem distribusi gas LPG terpercaya untuk memudahkan pengelolaan penjualan, stok, dan laporan pangkalan gas di seluruh Indonesia.',
+            address: 'Pangkalan Gas Utama, Kota Bandung, Jawa Barat',
+            phone: '0857-1234-5678',
+            email: 'info@pangkalan-gas.id'
+        };
+    }
+    next();
+});
+
 app.get('/login', (req, res) => {
+    if (req.session.userId) {
+        return res.redirect(req.session.role === 'pangkalan' ? '/pangkalan/pesan-masuk' : '/pembeli/dashboard');
+    }
     let error = null;
     if (req.query.register === 'success') {
         error = 'Pendaftaran berhasil! Silakan login.';
@@ -49,6 +81,9 @@ app.post('/login', authController.login);
 app.get('/logout', authController.logout);
 
 app.get('/daftar', (req, res) => {
+    if (req.session.userId) {
+        return res.redirect(req.session.role === 'pangkalan' ? '/pangkalan/pesan-masuk' : '/pembeli/dashboard');
+    }
     res.render('daftar', { error: null });
 });
 app.post('/daftar', authController.registerPembeliPublic);
@@ -59,8 +94,14 @@ app.use('/pangkalan', isLoggedIn, pangkalanRoutes);
 app.use('/pangkalan', isLoggedIn, tabungRoutes);
 app.use('/pembeli', isLoggedIn, pembeliRoutes);
 
-app.get('/', (req, res) => {
-    res.render('index', { session: req.session });
+app.get('/', async (req, res) => {
+    try {
+        const banners = await db.CarouselImage.findAll({ order: [['createdAt', 'DESC']] });
+        res.render('index', { session: req.session, banners });
+    } catch (err) {
+        console.error('Error fetching banners:', err);
+        res.render('index', { session: req.session, banners: [] });
+    }
 });
 
 const PORT = 3000;

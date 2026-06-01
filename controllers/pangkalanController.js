@@ -1,4 +1,4 @@
-const { Transaksi, User, Produk, BarangMasuk, TabungStok } = require('../models');
+const { Transaksi, User, Produk, BarangMasuk, TabungStok, CarouselImage, WebsiteInfo } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
@@ -23,6 +23,9 @@ exports.getPesananMasuk = async (req, res) => {
             produk_id: p.produk_id,
             jumlah: p.jumlah_beli,
             metode: p.metode,
+            metode_pembayaran: p.metode_pembayaran,
+            status_pembayaran: p.status_pembayaran,
+            bukti_pembayaran: p.bukti_pembayaran,
             tanggal: p.createdAt,
             stok_tersedia: p.Produk ? p.Produk.stok : 0
         }));
@@ -79,6 +82,9 @@ exports.accPesanan = async (req, res) => {
 
         transaksi.status = 'disetujui';
         transaksi.tanda_tangan = ttd_data || null;
+        if (transaksi.status_pembayaran === 'menunggu_verifikasi') {
+            transaksi.status_pembayaran = 'lunas';
+        }
         await transaksi.save();
 
         return res.redirect('/pangkalan/pesan-masuk?success=acc_berhasil');
@@ -115,53 +121,66 @@ exports.tolakPesanan = async (req, res) => {
     }
 };
 
+exports.konfirmasiPembayaran = async (req, res) => {
+    try {
+        const { id_transaksi } = req.body;
+
+        if (!id_transaksi) {
+            return res.redirect('/pangkalan/pesan-masuk?error=transaksi_tidak_ditemukan');
+        }
+
+        const transaksi = await Transaksi.findByPk(id_transaksi);
+        if (!transaksi) {
+            return res.redirect('/pangkalan/pesan-masuk?error=transaksi_tidak_ditemukan');
+        }
+
+        if (transaksi.status_pembayaran !== 'menunggu_verifikasi') {
+            return res.redirect('/pangkalan/pesan-masuk?error=pembayaran_sudah_dikonfirmasi');
+        }
+
+        transaksi.status_pembayaran = 'lunas';
+        await transaksi.save();
+
+        return res.redirect('/pangkalan/pesan-masuk?success=pembayaran_dikonfirmasi');
+    } catch (error) {
+        console.error("ERROR KONFIRMASI PEMBAYARAN:", error);
+        return res.redirect('/pangkalan/pesan-masuk?error=server_error');
+    }
+};
+
 exports.kelolaProduk = async (req, res) => {
     try {
         const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
-        res.render('pangkalan/kelola_produk', { produk });
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+        res.render('pangkalan/kelola_produk', { produk, success, error });
     } catch (error) {
         console.error("ERROR KELOLA PRODUK:", error);
         res.status(500).send("Gagal memuat produk: " + error.message);
     }
 };
 
-exports.tambahProduk = async (req, res) => {
+exports.editProduk = async (req, res) => {
     try {
-        const { nama, harga, stok } = req.body;
+        const { id } = req.params;
+        const { nama, harga } = req.body;
+
         if (!nama || !harga) {
             return res.redirect('/pangkalan/kelola-produk?error=invalid_input');
         }
-        const newProduk = await Produk.create({
-            nama,
-            harga: parseInt(harga) || 0,
-            stok: parseInt(stok) || 0,
-            createdBy: req.session.userId
-        });
 
-        const jenis = extractJenisDariNama(nama);
-        if (jenis) {
-            const tabungStok = await cariAtauBuatTabungStok(jenis);
-            await syncProdukStok(jenis, newProduk);
+        const produk = await Produk.findOne({ where: { id, createdBy: req.session.userId } });
+        if (!produk) {
+            return res.redirect('/pangkalan/kelola-produk?error=not_found');
         }
 
-        res.redirect('/pangkalan/kelola-produk?success=tambah');
-    } catch (error) {
-        console.error("ERROR TAMBAH PRODUK:", error);
-        res.redirect('/pangkalan/kelola-produk?error=gagal');
-    }
-};
+        produk.nama = nama;
+        produk.harga = parseInt(harga) || 0;
+        await produk.save();
 
-exports.hapusProduk = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const terkait = await BarangMasuk.count({ where: { produk_id: id } });
-        if (terkait > 0) {
-            return res.redirect('/pangkalan/kelola-produk?error=produk_terpakai');
-        }
-        await Produk.destroy({ where: { id, createdBy: req.session.userId } });
-        res.redirect('/pangkalan/kelola-produk?success=hapus');
+        res.redirect('/pangkalan/kelola-produk?success=edit');
     } catch (error) {
-        console.error("ERROR HAPUS PRODUK:", error);
+        console.error("ERROR EDIT PRODUK:", error);
         res.redirect('/pangkalan/kelola-produk?error=gagal');
     }
 };
@@ -365,7 +384,7 @@ exports.daftarPelanggan = async (req, res) => {
 exports.editPelanggan = async (req, res) => {
     try {
         const { id } = req.params;
-        const { username, password, no_ktp, sub_role, alamat } = req.body;
+        const { username, password, no_ktp, sub_role, alamat, nomor_hp } = req.body;
 
         const pelanggan = await User.findByPk(id);
         if (!pelanggan || pelanggan.role !== 'pembeli') {
@@ -387,6 +406,7 @@ exports.editPelanggan = async (req, res) => {
         pelanggan.no_ktp = no_ktp;
         pelanggan.sub_role = sub_role;
         pelanggan.alamat = alamat;
+        pelanggan.nomor_hp = nomor_hp || null;
 
         if (password && password.trim() !== '') {
             pelanggan.password = await bcrypt.hash(password, 10);
@@ -416,6 +436,179 @@ exports.hapusPelanggan = async (req, res) => {
     } catch (error) {
         console.error("ERROR HAPUS PELANGGAN:", error);
         return res.redirect('/pangkalan/daftar-pelanggan?error=server_error');
+    }
+};
+
+exports.transaksiLangsung = async (req, res) => {
+    try {
+        const { no_ktp } = req.query;
+        let pelanggan = null;
+        let riwayatTransaksi = [];
+        let totalMingguIni = 0;
+        let found = false;
+        let searched = !!no_ktp;
+        let produk3Kg = null;
+        let total3KgMingguIni = 0;
+        let maks3Kg = 0;
+        let sisa3Kg = 0;
+
+        if (no_ktp) {
+            pelanggan = await User.findOne({
+                where: { no_ktp, role: 'pembeli' },
+                attributes: { exclude: ['password'] }
+            });
+
+            if (pelanggan) {
+                found = true;
+
+                const now = new Date();
+                const dayOfWeek = now.getDay();
+                const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - diff);
+                monday.setHours(0, 0, 0, 0);
+
+                const transMingguIni = await Transaksi.findAll({
+                    where: {
+                        user_id: pelanggan.id,
+                        status: { [Op.in]: ['ACC', 'disetujui', 'selesai'] },
+                        createdAt: { [Op.gte]: monday }
+                    }
+                });
+                totalMingguIni = transMingguIni.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+
+                produk3Kg = await Produk.findOne({
+                    where: { nama: { [Op.like]: '%3Kg%' } }
+                });
+                if (produk3Kg) {
+                    if (pelanggan.sub_role === 'rumahtangga') {
+                        maks3Kg = 1;
+                    } else if (pelanggan.sub_role === 'usaha_mikro') {
+                        maks3Kg = 3;
+                    }
+                    const trans3Kg = transMingguIni.filter(t => t.produk_id === produk3Kg.id);
+                    total3KgMingguIni = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+                    sisa3Kg = Math.max(0, maks3Kg - total3KgMingguIni);
+                }
+
+                riwayatTransaksi = await Transaksi.findAll({
+                    where: { user_id: pelanggan.id },
+                    include: [{ model: Produk, attributes: ['nama', 'harga'] }],
+                    order: [['createdAt', 'DESC']],
+                    limit: 5
+                });
+            }
+        }
+
+        const produkList = await Produk.findAll({ where: { createdBy: req.session.userId } });
+
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+
+        res.render('pangkalan/transaksi_langsung', {
+            pelanggan,
+            riwayatTransaksi,
+            totalMingguIni,
+            produk3Kg,
+            total3KgMingguIni,
+            maks3Kg,
+            sisa3Kg,
+            cariKtp: no_ktp || '',
+            found,
+            searched,
+            produkList,
+            success,
+            error,
+            formatRupiah,
+            formatTanggal
+        });
+    } catch (error) {
+        console.error("ERROR TRANSAKSI LANGSUNG:", error);
+        res.status(500).send("Gagal memuat halaman: " + error.message);
+    }
+};
+
+exports.prosesTransaksiLangsung = async (req, res) => {
+    try {
+        const { user_id, produk_id, jumlah_beli } = req.body;
+
+        if (!user_id || !produk_id || !jumlah_beli || parseInt(jumlah_beli) <= 0) {
+            return res.redirect('/pangkalan/transaksi-langsung?error=invalid_input');
+        }
+
+        const pelanggan = await User.findByPk(user_id);
+        if (!pelanggan || pelanggan.role !== 'pembeli') {
+            return res.redirect('/pangkalan/transaksi-langsung?error=pelanggan_tidak_ditemukan');
+        }
+
+        const produk = await Produk.findByPk(produk_id);
+        if (!produk) {
+            return res.redirect('/pangkalan/transaksi-langsung?error=produk_tidak_ditemukan');
+        }
+
+        const jml = parseInt(jumlah_beli);
+
+        if (produk.stok < jml) {
+            return res.redirect('/pangkalan/transaksi-langsung?error=stok_tidak_cukup&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+        }
+
+        const isGas3Kg = produk.nama.toLowerCase().includes('3kg');
+        if (isGas3Kg) {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - diff);
+            monday.setHours(0, 0, 0, 0);
+
+            const transMingguIni = await Transaksi.findAll({
+                where: {
+                    user_id: pelanggan.id,
+                    status: { [Op.in]: ['ACC', 'disetujui', 'selesai'] },
+                    createdAt: { [Op.gte]: monday }
+                }
+            });
+            const produk3Kg = await Produk.findOne({
+                where: { nama: { [Op.like]: '%3Kg%' } }
+            });
+            const trans3Kg = produk3Kg ? transMingguIni.filter(t => t.produk_id === produk3Kg.id) : [];
+            const total3Kg = trans3Kg.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+            const maks3Kg = pelanggan.sub_role === 'rumahtangga' ? 1 : pelanggan.sub_role === 'usaha_mikro' ? 3 : 0;
+            const sisa3Kg = Math.max(0, maks3Kg - total3Kg);
+
+            if (jml > sisa3Kg) {
+                return res.redirect('/pangkalan/transaksi-langsung?error=kuota_habis&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+            }
+        }
+
+        const jenis = require('../utils/stokHelper').extractJenisDariNama(produk.nama);
+        if (jenis) {
+            const { cariAtauBuatTabungStok, syncProdukStok } = require('../utils/stokHelper');
+            const tabungStok = await cariAtauBuatTabungStok(jenis);
+            if (tabungStok.jumlah_isi < jml) {
+                return res.redirect('/pangkalan/transaksi-langsung?error=stok_tidak_cukup&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+            }
+            tabungStok.jumlah_isi -= jml;
+            await tabungStok.save();
+            await syncProdukStok(jenis);
+        } else {
+            produk.stok -= jml;
+            await produk.save();
+        }
+
+        await Transaksi.create({
+            user_id: pelanggan.id,
+            produk_id: produk.id,
+            jumlah_beli: jml,
+            metode: 'ambil',
+            status: 'selesai',
+            tanggal: new Date()
+        });
+
+        return res.redirect('/pangkalan/transaksi-langsung?success=transaksi_berhasil&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
+    } catch (error) {
+        console.error("ERROR PROSES TRANSAKSI LANGSUNG:", error);
+        return res.redirect('/pangkalan/transaksi-langsung?error=server_error');
     }
 };
 
@@ -642,5 +835,188 @@ exports.downloadLaporanPDF = async (req, res) => {
     } catch (error) {
         console.error("ERROR PDF LAPORAN:", error);
         res.status(500).send("Gagal membuat PDF: " + error.message);
+    }
+};
+
+exports.getRiwayatTransaksi = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 15;
+        const offset = (page - 1) * limit;
+
+        const statusFilter = req.query.status || '';
+        const bulan = parseInt(req.query.bulan) || '';
+        const tahun = parseInt(req.query.tahun) || '';
+        const search = req.query.search || '';
+
+        const where = {};
+
+        if (statusFilter) {
+            where.status = statusFilter;
+        }
+
+        if (search) {
+            where['$User.username$'] = { [Op.like]: `%${search}%` };
+        }
+
+        if (bulan && tahun) {
+            const startDate = new Date(tahun, bulan - 1, 1);
+            const endDate = new Date(tahun, bulan, 0, 23, 59, 59, 999);
+            where.createdAt = { [Op.between]: [startDate, endDate] };
+        } else if (tahun) {
+            const startDate = new Date(tahun, 0, 1);
+            const endDate = new Date(tahun, 11, 31, 23, 59, 59, 999);
+            where.createdAt = { [Op.between]: [startDate, endDate] };
+        }
+
+        const { count: totalItems, rows: transaksi } = await Transaksi.findAndCountAll({
+            where,
+            include: [
+                { model: User, attributes: ['username', 'alamat', 'no_ktp', 'sub_role'] },
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
+        });
+
+        const totalPages = Math.ceil(totalItems / limit);
+
+        const totalTabung = transaksi.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+        const totalPendapatan = transaksi.reduce((sum, t) => {
+            return sum + ((t.Produk ? t.Produk.harga : 0) * (t.jumlah_beli || 0));
+        }, 0);
+
+        const bulanList = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+
+        res.render('pangkalan/riwayat_transaksi', {
+            transaksi,
+            totalItems,
+            totalPages,
+            currentPage: page,
+            totalTabung,
+            totalPendapatan,
+            statusFilter,
+            bulan,
+            tahun,
+            search,
+            bulanList,
+            formatRupiah,
+            formatTanggal,
+            success,
+            error
+        });
+    } catch (error) {
+        console.error("ERROR RIWAYAT TRANSAKSI:", error);
+        res.status(500).send("Gagal memuat riwayat transaksi: " + error.message);
+    }
+};
+
+exports.getStruk = async (req, res) => {
+    try {
+        const transaksi = await Transaksi.findByPk(req.params.id, {
+            include: [
+                { model: User, attributes: ['username', 'alamat'] },
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ]
+        });
+
+        if (!transaksi) {
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        const totalHarga = (transaksi.Produk ? transaksi.Produk.harga : 0) * transaksi.jumlah_beli;
+
+        res.render('pembeli/struk', { transaksi, totalHarga });
+    } catch (error) {
+        console.error("ERROR STRUK:", error);
+        res.status(500).send("Gagal memuat struk: " + error.message);
+    }
+};
+
+exports.getCarousel = async (req, res) => {
+    try {
+        const banners = await CarouselImage.findAll({ order: [['createdAt', 'DESC']] });
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+        res.render('pangkalan/kelola_carousel', { banners, success, error });
+    } catch (error) {
+        console.error("ERROR GET CAROUSEL:", error);
+        res.status(500).send("Gagal memuat kelola banner: " + error.message);
+    }
+};
+
+exports.uploadCarousel = async (req, res) => {
+    try {
+        const { title, description } = req.body;
+        if (!req.file) {
+            return res.redirect('/pangkalan/carousel?error=no_file');
+        }
+
+        const imageUrl = '/uploads/carousel/' + req.file.filename;
+
+        await CarouselImage.create({
+            imageUrl,
+            title: title || null,
+            description: description || null
+        });
+
+        return res.redirect('/pangkalan/carousel?success=tambah');
+    } catch (error) {
+        console.error("ERROR UPLOAD CAROUSEL:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
+    }
+};
+
+exports.deleteCarousel = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const banner = await CarouselImage.findByPk(id);
+        if (!banner) {
+            return res.redirect('/pangkalan/carousel?error=not_found');
+        }
+
+        // Delete physical file
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.join(__dirname, '..', 'public', banner.imageUrl);
+
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        await banner.destroy();
+        return res.redirect('/pangkalan/carousel?success=hapus');
+    } catch (error) {
+        console.error("ERROR DELETE CAROUSEL:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
+    }
+};
+
+exports.updateWebsiteInfo = async (req, res) => {
+    try {
+        const { description, address, phone, email } = req.body;
+        
+        let info = await WebsiteInfo.findOne();
+        if (!info) {
+            await WebsiteInfo.create({ description, address, phone, email });
+        } else {
+            info.description = description;
+            info.address = address;
+            info.phone = phone;
+            info.email = email;
+            await info.save();
+        }
+
+        return res.redirect('/pangkalan/carousel?success=info_edit');
+    } catch (error) {
+        console.error("ERROR UPDATE WEBSITE INFO:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
     }
 };

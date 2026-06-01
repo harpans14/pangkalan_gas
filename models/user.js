@@ -16,7 +16,9 @@ module.exports = (sequelize, DataTypes) => {
     no_ktp: DataTypes.STRING,
     role: DataTypes.ENUM('pangkalan', 'pembeli'),
     sub_role: DataTypes.ENUM('rumahtangga', 'usaha_mikro', 'none'),
-    alamat: DataTypes.TEXT
+    alamat: DataTypes.TEXT,
+    nomor_hp: DataTypes.STRING,
+    foto: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'User',

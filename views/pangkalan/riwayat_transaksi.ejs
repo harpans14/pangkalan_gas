@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat Transaksi - Pangkalan Gas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fire me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Admin</small>
+    </div>
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/pesan-masuk">
+                <i class="bi bi-inbox"></i> Pesanan Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link active" href="/pangkalan/riwayat-transaksi">
+                <i class="bi bi-clock-history"></i> Riwayat Transaksi
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/kelola-produk">
+                <i class="bi bi-box"></i> Kelola Produk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/barang-masuk">
+                <i class="bi bi-arrow-down-circle"></i> Barang Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/tabung">
+                <i class="bi bi-archive"></i> Manajemen Tabung
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/laporan">
+                <i class="bi bi-file-earmark-bar-graph"></i> Laporan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/transaksi-langsung">
+                <i class="bi bi-cart-check"></i> Transaksi Langsung
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/daftar-pelanggan">
+                <i class="bi bi-person-plus"></i> Daftar Pelanggan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/carousel">
+                <i class="bi bi-images"></i> Kelola Banner
+            </a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar"><%= username.charAt(0).toUpperCase() %></div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;"><%= username %></div>
+                <small class="text-muted">Pangkalan</small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="main-content page-entrance">
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Riwayat Transaksi</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-done"><i class="bi bi-check-all"></i> <%= totalItems %> transaksi</span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <!-- ALERTS -->
+        <% if (success) { %>
+            <div class="alert alert-gas alert-gas-success alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi bi-check-circle-fill"></i> <%= success %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+        <% if (error) { %>
+            <div class="alert alert-gas alert-gas-danger alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi bi-exclamation-triangle-fill"></i> <%= error %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- SUMMARY CARDS -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card-gas">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div style="width:48px;height:48px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Total Transaksi</small>
+                            <h5 class="mb-0 fw-bold"><%= totalItems %></h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-gas">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div style="width:48px;height:48px;border-radius:12px;background:var(--success-light);color:var(--success);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+                            <i class="bi bi-fire"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Total Tabung Terjual</small>
+                            <h5 class="mb-0 fw-bold"><%= totalTabung %></h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-gas">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Total Pendapatan</small>
+                            <h5 class="mb-0 fw-bold"><%= formatRupiah(totalPendapatan) %></h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTER FORM -->
+        <div class="card-gas mb-4">
+            <div class="card-body">
+                <form method="GET" action="/pangkalan/riwayat-transaksi" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Bulan</label>
+                        <select name="bulan" class="form-select">
+                            <option value="">Semua Bulan</option>
+                            <% bulanList.forEach((nama, i) => { %>
+                                <option value="<%= i + 1 %>" <%= (bulan === i + 1) ? 'selected' : '' %>><%= nama %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tahun</label>
+                        <select name="tahun" class="form-select">
+                            <option value="">Semua</option>
+                            <% for (let y = new Date().getFullYear(); y >= 2024; y--) { %>
+                                <option value="<%= y %>" <%= (tahun === y) ? 'selected' : '' %>><%= y %></option>
+                            <% } %>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">Semua Status</option>
+                            <option value="pending" <%= statusFilter === 'pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="disetujui" <%= statusFilter === 'disetujui' ? 'selected' : '' %>>Disetujui</option>
+                            <option value="selesai" <%= statusFilter === 'selesai' ? 'selected' : '' %>>Selesai</option>
+                            <option value="ditolak" <%= statusFilter === 'ditolak' ? 'selected' : '' %>>Ditolak</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Cari Pembeli</label>
+                        <input type="text" name="search" class="form-control" placeholder="Nama pembeli..." value="<%= search %>">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-gas btn-gas-primary w-100">
+                            <i class="bi bi-search"></i> Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="card-gas">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-2"></i>Daftar Transaksi</span>
+                <span class="badge bg-gas-primary"><%= totalItems %> transaksi</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-gas mb-0">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Tanggal</th>
+                                <th>Pembeli</th>
+                                <th>Produk</th>
+                                <th>Jumlah</th>
+                                <th>Harga</th>
+                                <th>Total</th>
+                                <th>Pembayaran</th>
+                                <th>Status</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (transaksi.length === 0) { %>
+                            <tr>
+                                <td colspan="10">
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="bi bi-clock-history"></i></div>
+                                        <h5>Belum Ada Transaksi</h5>
+                                        <p>Belum ada transaksi yang tercatat.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% } else { %>
+                            <% transaksi.forEach((t, i) => { %>
+                            <tr>
+                                <td><%= (currentPage - 1) * 15 + i + 1 %></td>
+                                <td><%= formatTanggal(t.createdAt) %></td>
+                                <td>
+                                    <div class="fw-bold"><%= t.User ? t.User.username : '-' %></div>
+                                    <small class="text-muted"><%= t.User ? t.User.sub_role === 'rumahtangga' ? 'Rumah Tangga' : t.User.sub_role === 'usaha_mikro' ? 'Usaha Mikro' : '' : '' %></small>
+                                </td>
+                                <td><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                <td><strong><%= t.jumlah_beli %></strong></td>
+                                <td><%= t.Produk ? 'Rp' + t.Produk.harga.toLocaleString() : '-' %></td>
+                                <td class="fw-bold text-gas-primary">Rp<%= ((t.Produk ? t.Produk.harga : 0) * t.jumlah_beli).toLocaleString() %></td>
+                                <td>
+                                    <% if (t.status_pembayaran === 'lunas') { %>
+                                        <span class="badge-gas badge-done"><i class="bi bi-check-circle"></i> Lunas</span>
+                                    <% } else if (t.status_pembayaran === 'menunggu_verifikasi') { %>
+                                        <span class="badge-gas badge-pending"><i class="bi bi-clock"></i> Verifikasi</span>
+                                    <% } else if (t.status_pembayaran === 'belum_bayar') { %>
+                                        <span class="badge-gas badge-rejected"><i class="bi bi-x-circle"></i> Belum Bayar</span>
+                                    <% } else { %>
+                                        <span class="badge-gas bg-secondary">-</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% let badgeClass = 'bg-secondary'; %>
+                                    <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
+                                    <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
+                                    <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
+                                    <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
+                                    <span class="badge-gas <%= badgeClass %>">
+                                        <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
+                                        <%= t.status.charAt(0).toUpperCase() + t.status.slice(1) %>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="/pangkalan/struk/<%= t.id %>" target="_blank" class="btn btn-gas btn-gas-accent btn-gas-sm" title="Cetak Struk">
+                                        <i class="bi bi-receipt"></i> Struk
+                                    </a>
+                                </td>
+                            </tr>
+                            <% }) } %>
+                        </tbody>
+                    </table>
+                </div>
+                <% if (totalPages > 1) { %>
+                <div class="d-flex justify-content-center py-3">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
+                                <a class="page-link" href="?page=<%= currentPage - 1 %><%= statusFilter ? '&status=' + statusFilter : '' %><%= bulan ? '&bulan=' + bulan : '' %><%= tahun ? '&tahun=' + tahun : '' %><%= search ? '&search=' + search : '' %>">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            <% for (let i = 1; i <= totalPages; i++) { %>
+                            <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                                <a class="page-link" href="?page=<%= i %><%= statusFilter ? '&status=' + statusFilter : '' %><%= bulan ? '&bulan=' + bulan : '' %><%= tahun ? '&tahun=' + tahun : '' %><%= search ? '&search=' + search : '' %>"><%= i %></a>
+                            </li>
+                            <% } %>
+                            <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
+                                <a class="page-link" href="?page=<%= currentPage + 1 %><%= statusFilter ? '&status=' + statusFilter : '' %><%= bulan ? '&bulan=' + bulan : '' %><%= tahun ? '&tahun=' + tahun : '' %><%= search ? '&search=' + search : '' %>">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>
