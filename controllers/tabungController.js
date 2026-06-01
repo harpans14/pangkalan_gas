@@ -17,6 +17,7 @@ exports.getDashboard = async (req, res) => {
         }) || 0;
 
         const data = await TabungTransaksi.findAll({
+            where: { status: 'aktif' },
             order: [['createdAt', 'DESC']],
             limit: 20
         });
