@@ -208,92 +208,94 @@
                     </div>
                 </div>
 
-                <!-- RIWAYAT TRANSAKSI -->
-                <div class="card-gas">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-clock-history me-2"></i>Riwayat Transaksi</span>
-                        <span class="badge badge-done"><%= totalItems %> transaksi</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table-gas mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Produk</th>
-                                        <th>Jumlah</th>
-                                        <th>Harga</th>
-                                        <th>Total</th>
-                                        <th>Metode</th>
-                                        <th>Status</th>
-                                        <th>Tanggal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% if (riwayatTransaksi.length === 0) { %>
-                                    <tr>
-                                        <td colspan="7">
-                                            <div class="empty-state">
-                                                <div class="empty-icon"><i class="bi bi-receipt"></i></div>
-                                                <h5>Belum Ada Transaksi</h5>
-                                                <p>Pesan gas untuk mulai mencatat riwayat transaksi.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <% } else { %>
-                                    <% riwayatTransaksi.forEach(t => { %>
-                                    <tr>
-                                        <td class="fw-bold"><%= t.Produk ? t.Produk.nama : '-' %></td>
-                                        <td><%= t.jumlah_beli %></td>
-                                        <td><%= t.Produk ? 'Rp' + t.Produk.harga.toLocaleString() : '-' %></td>
-                                        <td class="fw-bold text-gas-primary"><%= t.Produk ? 'Rp' + (t.Produk.harga * t.jumlah_beli).toLocaleString() : '-' %></td>
-                                        <td>
-                                            <span class="badge-gas <%= t.metode === 'kirim' ? 'badge-approved' : 'badge-pending' %>">
-                                                <i class="bi <%= t.metode === 'kirim' ? 'bi-truck' : 'bi-walk' %>"></i>
-                                                <%= t.metode === 'kirim' ? 'Dikirim' : 'Diambil' %>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <% let badgeClass = 'bg-secondary'; %>
-                                            <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
-                                            <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
-                                            <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
-                                            <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
-                                            <span class="badge-gas <%= badgeClass %>">
-                                                <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
-                                                <%= t.status %>
-                                            </span>
-                                        </td>
-                                        <td><%= new Date(t.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
-                                    </tr>
-                                    <% }) } %>
-                                </tbody>
-                            </table>
-                        </div>
-                        <% if (totalPages > 1) { %>
-                        <div class="d-flex justify-content-center py-3">
-                            <nav>
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
-                                        <a class="page-link" href="?page=<%= currentPage - 1 %>">
-                                            <i class="bi bi-chevron-left"></i> Previous
-                                        </a>
-                                    </li>
-                                    <% for (let i = 1; i <= totalPages; i++) { %>
-                                    <li class="page-item <%= i === currentPage ? 'active' : '' %>">
-                                        <a class="page-link" href="?page=<%= i %>"><%= i %></a>
-                                    </li>
-                                    <% } %>
-                                    <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
-                                        <a class="page-link" href="?page=<%= currentPage + 1 %>">
-                                            Next <i class="bi bi-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
-                        <% } %>
-                    </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- RIWAYAT TRANSAKSI FULL WIDTH -->
+        <div class="card-gas mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-2"></i>Riwayat Transaksi</span>
+                <span class="badge badge-done"><%= totalItems %> transaksi</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-gas mb-0">
+                        <thead>
+                            <tr>
+                                <th>Produk</th>
+                                <th>Jumlah</th>
+                                <th>Harga</th>
+                                <th>Total</th>
+                                <th>Metode</th>
+                                <th>Status</th>
+                                <th>Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (riwayatTransaksi.length === 0) { %>
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+                                        <h5>Belum Ada Transaksi</h5>
+                                        <p>Pesan gas untuk mulai mencatat riwayat transaksi.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% } else { %>
+                            <% riwayatTransaksi.forEach(t => { %>
+                            <tr>
+                                <td class="fw-bold"><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                <td><%= t.jumlah_beli %></td>
+                                <td><%= t.Produk ? 'Rp' + t.Produk.harga.toLocaleString() : '-' %></td>
+                                <td class="fw-bold text-gas-primary"><%= t.Produk ? 'Rp' + (t.Produk.harga * t.jumlah_beli).toLocaleString() : '-' %></td>
+                                <td>
+                                    <span class="badge-gas <%= t.metode === 'kirim' ? 'badge-approved' : 'badge-pending' %>">
+                                        <i class="bi <%= t.metode === 'kirim' ? 'bi-truck' : 'bi-walk' %>"></i>
+                                        <%= t.metode === 'kirim' ? 'Dikirim' : 'Diambil' %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <% let badgeClass = 'bg-secondary'; %>
+                                    <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
+                                    <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
+                                    <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
+                                    <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
+                                    <span class="badge-gas <%= badgeClass %>">
+                                        <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
+                                        <%= t.status %>
+                                    </span>
+                                </td>
+                                <td><%= new Date(t.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
+                            </tr>
+                            <% }) } %>
+                        </tbody>
+                    </table>
+                </div>
+                <% if (totalPages > 1) { %>
+                <div class="d-flex justify-content-center py-3">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
+                                <a class="page-link" href="?page=<%= currentPage - 1 %>">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            <% for (let i = 1; i <= totalPages; i++) { %>
+                            <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                                <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                            </li>
+                            <% } %>
+                            <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
+                                <a class="page-link" href="?page=<%= currentPage + 1 %>">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                <% } %>
             </div>
         </div>
     </div>
