@@ -838,6 +838,86 @@ exports.downloadLaporanPDF = async (req, res) => {
     }
 };
 
+exports.getRiwayatTransaksi = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 15;
+        const offset = (page - 1) * limit;
+
+        const statusFilter = req.query.status || '';
+        const bulan = parseInt(req.query.bulan) || '';
+        const tahun = parseInt(req.query.tahun) || '';
+        const search = req.query.search || '';
+
+        const where = {};
+
+        if (statusFilter) {
+            where.status = statusFilter;
+        }
+
+        if (search) {
+            where['$User.username$'] = { [Op.like]: `%${search}%` };
+        }
+
+        if (bulan && tahun) {
+            const startDate = new Date(tahun, bulan - 1, 1);
+            const endDate = new Date(tahun, bulan, 0, 23, 59, 59, 999);
+            where.createdAt = { [Op.between]: [startDate, endDate] };
+        } else if (tahun) {
+            const startDate = new Date(tahun, 0, 1);
+            const endDate = new Date(tahun, 11, 31, 23, 59, 59, 999);
+            where.createdAt = { [Op.between]: [startDate, endDate] };
+        }
+
+        const { count: totalItems, rows: transaksi } = await Transaksi.findAndCountAll({
+            where,
+            include: [
+                { model: User, attributes: ['username', 'alamat', 'no_ktp', 'sub_role'] },
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
+        });
+
+        const totalPages = Math.ceil(totalItems / limit);
+
+        const totalTabung = transaksi.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+        const totalPendapatan = transaksi.reduce((sum, t) => {
+            return sum + ((t.Produk ? t.Produk.harga : 0) * (t.jumlah_beli || 0));
+        }, 0);
+
+        const bulanList = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+
+        res.render('pangkalan/riwayat_transaksi', {
+            transaksi,
+            totalItems,
+            totalPages,
+            currentPage: page,
+            totalTabung,
+            totalPendapatan,
+            statusFilter,
+            bulan,
+            tahun,
+            search,
+            bulanList,
+            formatRupiah,
+            formatTanggal,
+            success,
+            error
+        });
+    } catch (error) {
+        console.error("ERROR RIWAYAT TRANSAKSI:", error);
+        res.status(500).send("Gagal memuat riwayat transaksi: " + error.message);
+    }
+};
+
 exports.getStruk = async (req, res) => {
     try {
         const transaksi = await Transaksi.findByPk(req.params.id, {
