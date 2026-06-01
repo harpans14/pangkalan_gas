@@ -850,13 +850,14 @@ exports.getRiwayatTransaksi = async (req, res) => {
         const search = req.query.search || '';
 
         const where = {};
+        const userWhere = {};
 
         if (statusFilter) {
             where.status = statusFilter;
         }
 
         if (search) {
-            where['$User.username$'] = { [Op.like]: `%${search}%` };
+            userWhere.username = { [Op.like]: `%${search}%` };
         }
 
         if (bulan && tahun) {
@@ -869,15 +870,21 @@ exports.getRiwayatTransaksi = async (req, res) => {
             where.createdAt = { [Op.between]: [startDate, endDate] };
         }
 
+        const includeUser = { model: User, attributes: ['username', 'alamat', 'no_ktp', 'sub_role'] };
+        if (Object.keys(userWhere).length > 0) {
+            includeUser.where = userWhere;
+        }
+
         const { count: totalItems, rows: transaksi } = await Transaksi.findAndCountAll({
             where,
             include: [
-                { model: User, attributes: ['username', 'alamat', 'no_ktp', 'sub_role'] },
+                includeUser,
                 { model: Produk, attributes: ['nama', 'harga'] }
             ],
             order: [['createdAt', 'DESC']],
             limit,
-            offset
+            offset,
+            distinct: true
         });
 
         const totalPages = Math.ceil(totalItems / limit);
