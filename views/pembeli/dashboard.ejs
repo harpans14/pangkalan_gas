@@ -204,7 +204,7 @@
                                             </div>
                                         </div>
                                         <div class="product-footer">
-                                            <button class="btn btn-gas btn-gas-primary btn-gas-sm w-100" onclick="switchTab(null, 'tab-pesan')">
+                                            <button class="btn btn-gas btn-gas-primary btn-gas-sm w-100" onclick="switchTab(null, 'tab-pesan', <%= p.id %>)">
                                                 <i class="bi bi-cart-plus"></i> Pesan Sekarang
                                             </button>
                                         </div>
@@ -417,7 +417,7 @@
 <script src="/js/main.js"></script>
 <script>
 // Tab switching logic for pembeli dashboard
-function switchTab(event, tabId) {
+function switchTab(event, tabId, produkId) {
     if (event) event.preventDefault();
 
     // Hide all tab panels
@@ -440,6 +440,14 @@ function switchTab(event, tabId) {
     const navLink = document.querySelector('.sidebar-menu .nav-link[data-tab="' + tabId + '"]');
     if (navLink) {
         navLink.classList.add('active');
+    }
+
+    // Pre-select product if produkId is provided
+    if (produkId) {
+        const select = document.querySelector('select[name="produk_id"]');
+        if (select) {
+            select.value = produkId;
+        }
     }
 
     // Scroll to top of content
