@@ -243,10 +243,12 @@
                                 <select name="produk_id" id="produkSelect" class="form-select form-select-lg" required onchange="updateJumlahMax()">
                                     <option value="">-- Pilih Produk --</option>
                                     <% produkList.forEach(p => { %>
+                                        <% const is3kg = p.nama.toLowerCase().includes('3kg'); %>
                                         <option value="<%= p.id %>"
                                             data-nama="<%= p.nama.toLowerCase() %>"
-                                            <%= p.stok <= 0 ? 'disabled' : '' %>>
+                                            <%= (p.stok <= 0 || (is3kg && sisa3Kg <= 0 && maks3Kg > 0)) ? 'disabled' : '' %>>
                                             <%= p.nama %> - Rp <%= (p.harga || 0).toLocaleString() %> (Stok: <%= p.stok %>)
+                                            <%= (is3kg && sisa3Kg <= 0 && maks3Kg > 0) ? ' - (Kuota habis)' : '' %>
                                         </option>
                                     <% }) %>
                                 </select>
