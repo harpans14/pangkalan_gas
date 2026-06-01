@@ -77,6 +77,7 @@ app.get('/login', (req, res) => {
     }
     res.render('login', { error });
 });
+
 app.post('/login', authController.login);
 app.get('/logout', authController.logout);
 
@@ -86,6 +87,7 @@ app.get('/daftar', (req, res) => {
     }
     res.render('daftar', { error: null });
 });
+
 app.post('/daftar', authController.registerPembeliPublic);
 
 app.post('/pangkalan/daftar-pelanggan', isLoggedIn, isRole('pangkalan'), authController.registerPembeli);
@@ -104,8 +106,13 @@ app.get('/', async (req, res) => {
     }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Login: http://localhost:3000/login`);
+    console.log(`Server running on port ${PORT}`);
+
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`Local: http://localhost:${PORT}`);
+        console.log(`Login: http://localhost:${PORT}/login`);
+    }
 });
