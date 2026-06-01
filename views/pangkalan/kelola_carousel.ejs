@@ -156,7 +156,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Nomor Telepon/HP</label>
-                                <input type="text" name="phone" class="form-control" value="<%= websiteInfo.phone %>" required>
+                                <input type="text" name="phone" class="form-control" value="<%= websiteInfo.phone %>" required maxlength="13" oninput="this.value=this.value.replace(/\D/g,'')">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Email</label>

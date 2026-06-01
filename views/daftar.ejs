@@ -63,7 +63,7 @@
                 <label class="form-label">Nomor HP</label>
                 <div class="input-group has-validation">
                     <span class="input-group-text bg-white"><i class="bi bi-telephone text-gas-primary"></i></span>
-                    <input type="text" name="nomor_hp" class="form-control" placeholder="Nomor HP (opsional)">
+                    <input type="text" name="nomor_hp" class="form-control" placeholder="Nomor HP (opsional)" maxlength="13" oninput="this.value=this.value.replace(/\D/g,'')">
                 </div>
             </div>
             <div class="mb-4">
