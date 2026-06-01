@@ -2,21 +2,28 @@ const express = require('express');
 const router = express.Router();
 const pangkalanController = require('../controllers/pangkalanController');
 const { isLoggedIn, isRole } = require('../middleware/auth');
+const upload = require('../utils/upload');
 
 router.use(isLoggedIn, isRole('pangkalan'));
 
 router.get('/pesan-masuk', pangkalanController.getPesananMasuk);
+router.get('/struk/:id', pangkalanController.getStruk);
 router.post('/acc-proses', pangkalanController.accPesanan);
 router.post('/tolak-proses', pangkalanController.tolakPesanan);
 router.post('/konfirmasi-pembayaran', pangkalanController.konfirmasiPembayaran);
 router.get('/kelola-produk', pangkalanController.kelolaProduk);
 router.post('/edit-produk/:id', pangkalanController.editProduk);
 
+// Carousel Management Routes
+router.get('/carousel', pangkalanController.getCarousel);
+router.post('/carousel/upload', upload.uploadCarousel.single('image'), pangkalanController.uploadCarousel);
+router.post('/carousel/delete/:id', pangkalanController.deleteCarousel);
+router.post('/carousel/info', pangkalanController.updateWebsiteInfo);
+
 router.get('/barang-masuk', pangkalanController.getBarangMasuk);
 router.post('/tambah-barang-masuk', pangkalanController.tambahBarangMasuk);
-router.post('/edit-barang-masuk/:id', pangkalanController.editBarangMasuk);
-router.post('/hapus-barang-masuk/:id', pangkalanController.hapusBarangMasuk);
 
+router.get('/riwayat-transaksi', pangkalanController.getRiwayatTransaksi);
 router.get('/laporan', pangkalanController.laporanPenjualan);
 router.get('/laporan/pdf', pangkalanController.downloadLaporanPDF);
 

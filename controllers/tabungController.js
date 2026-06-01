@@ -1,4 +1,4 @@
-const { TabungStok, TabungTransaksi, Produk } = require('../models');
+const { User, TabungStok, TabungTransaksi, Produk } = require('../models');
 const { Op } = require('sequelize');
 const { syncProdukStok, cariAtauBuatTabungStok } = require('../utils/stokHelper');
 
@@ -17,15 +17,22 @@ exports.getDashboard = async (req, res) => {
         }) || 0;
 
         const data = await TabungTransaksi.findAll({
+            where: { status: 'aktif' },
             order: [['createdAt', 'DESC']],
             limit: 20
         });
 
         const belumKembali = data.filter(d => d.status === 'aktif' && d.tipe === 'pinjam');
 
+        const pelangganList = await User.findAll({
+            where: { role: 'pembeli' },
+            attributes: ['id', 'username', 'no_ktp', 'sub_role'],
+            order: [['username', 'ASC']]
+        });
+
         res.render('pangkalan/tabung/index', {
             stok, totalIsi, totalKosong, totalTitip, totalPinjam,
-            data, belumKembali,
+            data, belumKembali, pelangganList,
             success: req.query.success || null, error: req.query.error || null
         });
     } catch (error) {
@@ -42,20 +49,16 @@ exports.tambah = async (req, res) => {
             return res.redirect('/pangkalan/tabung?error=lengkapi_data');
         }
 
-        const stok = await cariAtauBuatTabungStok(jenis_tabung);
         const jml = parseInt(jumlah);
 
-        if (tipe === 'pinjam' && (stok.jumlah_isi || 0) < jml) {
-            return res.redirect('/pangkalan/tabung?error=stok_kurang');
+        if (tipe === 'pinjam') {
+            const stok = await cariAtauBuatTabungStok(jenis_tabung);
+            if ((stok.jumlah_kosong || 0) < jml) {
+                return res.redirect('/pangkalan/tabung?error=stok_kosong_kurang');
+            }
+            stok.jumlah_kosong = Math.max(0, (stok.jumlah_kosong || 0) - jml);
+            await stok.save();
         }
-
-        if (tipe === 'titip') {
-            stok.jumlah_kosong = (stok.jumlah_kosong || 0) + jml;
-        } else {
-            stok.jumlah_isi = (stok.jumlah_isi || 0) - jml;
-        }
-        await stok.save();
-        await syncProdukStok(jenis_tabung);
 
         await TabungTransaksi.create({
             tipe, nama_pelanggan, jenis_tabung,
@@ -89,28 +92,20 @@ exports.edit = async (req, res) => {
 
         let oldStok = await TabungStok.findOne({ where: { jenis: oldJenis } });
         if (oldStok) {
-            if (oldTipe === 'titip') {
-                oldStok.jumlah_kosong = Math.max(0, (oldStok.jumlah_kosong || 0) - oldJumlah);
-            } else {
-                oldStok.jumlah_isi = (oldStok.jumlah_isi || 0) + oldJumlah;
+            if (oldTipe === 'pinjam') {
+                oldStok.jumlah_kosong = Math.max(0, (oldStok.jumlah_kosong || 0) + oldJumlah);
+                await oldStok.save();
             }
-            await oldStok.save();
-            await syncProdukStok(oldJenis);
         }
 
-        const newStok = await cariAtauBuatTabungStok(jenis_tabung);
-
-        if (tipe === 'pinjam' && (newStok.jumlah_isi || 0) < newJml) {
-            return res.redirect('/pangkalan/tabung?error=stok_kurang');
+        if (tipe === 'pinjam') {
+            const newStok = await cariAtauBuatTabungStok(jenis_tabung);
+            if ((newStok.jumlah_kosong || 0) < newJml) {
+                return res.redirect('/pangkalan/tabung?error=stok_kosong_kurang');
+            }
+            newStok.jumlah_kosong = Math.max(0, (newStok.jumlah_kosong || 0) - newJml);
+            await newStok.save();
         }
-
-        if (tipe === 'titip') {
-            newStok.jumlah_kosong = (newStok.jumlah_kosong || 0) + newJml;
-        } else {
-            newStok.jumlah_isi = (newStok.jumlah_isi || 0) - newJml;
-        }
-        await newStok.save();
-        await syncProdukStok(jenis_tabung);
 
         trx.tipe = tipe;
         trx.nama_pelanggan = nama_pelanggan;
@@ -134,16 +129,11 @@ exports.hapus = async (req, res) => {
         const trx = await TabungTransaksi.findByPk(id);
         if (!trx) return res.redirect('/pangkalan/tabung?error=tidak_ditemukan');
 
-        if (trx.status === 'aktif') {
+        if (trx.status === 'aktif' && trx.tipe === 'pinjam') {
             let stok = await TabungStok.findOne({ where: { jenis: trx.jenis_tabung } });
             if (stok) {
-                if (trx.tipe === 'titip') {
-                    stok.jumlah_kosong = Math.max(0, (stok.jumlah_kosong || 0) - trx.jumlah);
-                } else {
-                    stok.jumlah_isi = (stok.jumlah_isi || 0) + trx.jumlah;
-                }
+                stok.jumlah_kosong = Math.max(0, (stok.jumlah_kosong || 0) + trx.jumlah);
                 await stok.save();
-                await syncProdukStok(trx.jenis_tabung);
             }
         }
 
@@ -163,21 +153,16 @@ exports.selesai = async (req, res) => {
         if (!trx) return res.redirect('/pangkalan/tabung?error=tidak_ditemukan');
         if (trx.status === 'selesai') return res.redirect('/pangkalan/tabung?error=sudah_selesai');
 
+        if (trx.tipe === 'pinjam') {
+            let stok = await TabungStok.findOne({ where: { jenis: trx.jenis_tabung } });
+            if (stok) {
+                stok.jumlah_kosong = Math.max(0, (stok.jumlah_kosong || 0) + trx.jumlah);
+                await stok.save();
+            }
+        }
+
         trx.status = 'selesai';
         await trx.save();
-
-        let stok = await TabungStok.findOne({ where: { jenis: trx.jenis_tabung } });
-        if (!stok) {
-            stok = await TabungStok.create({ jenis: trx.jenis_tabung, jumlah_isi: 0, jumlah_kosong: 0 });
-        }
-
-        if (trx.tipe === 'titip') {
-            stok.jumlah_kosong = Math.max(0, (stok.jumlah_kosong || 0) - trx.jumlah);
-        } else {
-            stok.jumlah_isi = Math.max(0, (stok.jumlah_isi || 0) + trx.jumlah);
-        }
-        await stok.save();
-        await syncProdukStok(trx.jenis_tabung);
 
         res.redirect('/pangkalan/tabung?success=selesai');
     } catch (error) {

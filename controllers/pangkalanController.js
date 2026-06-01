@@ -1,4 +1,4 @@
-const { Transaksi, User, Produk, BarangMasuk, TabungStok } = require('../models');
+const { Transaksi, User, Produk, BarangMasuk, TabungStok, TabungTransaksi, CarouselImage, WebsiteInfo } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
@@ -73,6 +73,7 @@ exports.accPesanan = async (req, res) => {
                 return res.redirect('/pangkalan/pesan-masuk?error=stok_tidak_cukup');
             }
             tabungStok.jumlah_isi -= transaksi.jumlah_beli;
+            tabungStok.jumlah_kosong += transaksi.jumlah_beli;
             await tabungStok.save();
             await syncProdukStok(jenis);
         } else {
@@ -197,10 +198,12 @@ exports.getBarangMasuk = async (req, res) => {
 
         const produkList = await Produk.findAll({ where: { createdBy: req.session.userId } });
 
+        const tabungStokList = await TabungStok.findAll();
+
         const success = req.query.success || null;
         const error = req.query.error || null;
 
-        res.render('pangkalan/barang_masuk', { barangMasuk, produkList, success, error });
+        res.render('pangkalan/barang_masuk', { barangMasuk, produkList, tabungStokList, success, error });
     } catch (error) {
         console.error("ERROR BARANG MASUK:", error);
         res.status(500).send("Gagal memuat data barang masuk: " + error.message);
@@ -234,6 +237,10 @@ exports.tambahBarangMasuk = async (req, res) => {
         const jenis = extractJenisDariNama(produk.nama);
         if (jenis) {
             const tabungStok = await cariAtauBuatTabungStok(jenis);
+            if ((tabungStok.jumlah_kosong || 0) < jml) {
+                return res.redirect('/pangkalan/barang-masuk?error=stok_kosong_tidak_cukup');
+            }
+            tabungStok.jumlah_kosong = (tabungStok.jumlah_kosong || 0) - jml;
             tabungStok.jumlah_isi = (tabungStok.jumlah_isi || 0) + jml;
             await tabungStok.save();
             await syncProdukStok(jenis);
@@ -589,6 +596,7 @@ exports.prosesTransaksiLangsung = async (req, res) => {
                 return res.redirect('/pangkalan/transaksi-langsung?error=stok_tidak_cukup&no_ktp=' + encodeURIComponent(pelanggan.no_ktp));
             }
             tabungStok.jumlah_isi -= jml;
+            tabungStok.jumlah_kosong += jml;
             await tabungStok.save();
             await syncProdukStok(jenis);
         } else {
@@ -835,5 +843,195 @@ exports.downloadLaporanPDF = async (req, res) => {
     } catch (error) {
         console.error("ERROR PDF LAPORAN:", error);
         res.status(500).send("Gagal membuat PDF: " + error.message);
+    }
+};
+
+exports.getRiwayatTransaksi = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 15;
+        const offset = (page - 1) * limit;
+
+        const statusFilter = req.query.status || '';
+        const bulan = parseInt(req.query.bulan) || '';
+        const tahun = parseInt(req.query.tahun) || '';
+        const search = req.query.search || '';
+
+        const where = {};
+        const userWhere = {};
+
+        if (statusFilter) {
+            where.status = statusFilter;
+        }
+
+        if (search) {
+            userWhere.username = { [Op.like]: `%${search}%` };
+        }
+
+        if (bulan && tahun) {
+            const startDate = new Date(tahun, bulan - 1, 1);
+            const endDate = new Date(tahun, bulan, 0, 23, 59, 59, 999);
+            where.createdAt = { [Op.between]: [startDate, endDate] };
+        } else if (tahun) {
+            const startDate = new Date(tahun, 0, 1);
+            const endDate = new Date(tahun, 11, 31, 23, 59, 59, 999);
+            where.createdAt = { [Op.between]: [startDate, endDate] };
+        }
+
+        const includeUser = { model: User, attributes: ['username', 'alamat', 'no_ktp', 'sub_role'] };
+        if (Object.keys(userWhere).length > 0) {
+            includeUser.where = userWhere;
+        }
+
+        const { count: totalItems, rows: transaksi } = await Transaksi.findAndCountAll({
+            where,
+            include: [
+                includeUser,
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset,
+            distinct: true
+        });
+
+        const totalPages = Math.ceil(totalItems / limit);
+
+        const totalTabung = transaksi.reduce((sum, t) => sum + (t.jumlah_beli || 0), 0);
+        const totalPendapatan = transaksi.reduce((sum, t) => {
+            return sum + ((t.Produk ? t.Produk.harga : 0) * (t.jumlah_beli || 0));
+        }, 0);
+
+        const bulanList = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+
+        res.render('pangkalan/riwayat_transaksi', {
+            transaksi,
+            totalItems,
+            totalPages,
+            currentPage: page,
+            totalTabung,
+            totalPendapatan,
+            statusFilter,
+            bulan,
+            tahun,
+            search,
+            bulanList,
+            formatRupiah,
+            formatTanggal,
+            success,
+            error
+        });
+    } catch (error) {
+        console.error("ERROR RIWAYAT TRANSAKSI:", error);
+        res.status(500).send("Gagal memuat riwayat transaksi: " + error.message);
+    }
+};
+
+exports.getStruk = async (req, res) => {
+    try {
+        const transaksi = await Transaksi.findByPk(req.params.id, {
+            include: [
+                { model: User, attributes: ['username', 'alamat'] },
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ]
+        });
+
+        if (!transaksi) {
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        const totalHarga = (transaksi.Produk ? transaksi.Produk.harga : 0) * transaksi.jumlah_beli;
+
+        res.render('pembeli/struk', { transaksi, totalHarga });
+    } catch (error) {
+        console.error("ERROR STRUK:", error);
+        res.status(500).send("Gagal memuat struk: " + error.message);
+    }
+};
+
+exports.getCarousel = async (req, res) => {
+    try {
+        const banners = await CarouselImage.findAll({ order: [['createdAt', 'DESC']] });
+        const success = req.query.success || null;
+        const error = req.query.error || null;
+        res.render('pangkalan/kelola_carousel', { banners, success, error });
+    } catch (error) {
+        console.error("ERROR GET CAROUSEL:", error);
+        res.status(500).send("Gagal memuat kelola banner: " + error.message);
+    }
+};
+
+exports.uploadCarousel = async (req, res) => {
+    try {
+        const { title, description } = req.body;
+        if (!req.file) {
+            return res.redirect('/pangkalan/carousel?error=no_file');
+        }
+
+        const imageUrl = '/uploads/carousel/' + req.file.filename;
+
+        await CarouselImage.create({
+            imageUrl,
+            title: title || null,
+            description: description || null
+        });
+
+        return res.redirect('/pangkalan/carousel?success=tambah');
+    } catch (error) {
+        console.error("ERROR UPLOAD CAROUSEL:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
+    }
+};
+
+exports.deleteCarousel = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const banner = await CarouselImage.findByPk(id);
+        if (!banner) {
+            return res.redirect('/pangkalan/carousel?error=not_found');
+        }
+
+        // Delete physical file
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.join(__dirname, '..', 'public', banner.imageUrl);
+
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        await banner.destroy();
+        return res.redirect('/pangkalan/carousel?success=hapus');
+    } catch (error) {
+        console.error("ERROR DELETE CAROUSEL:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
+    }
+};
+
+exports.updateWebsiteInfo = async (req, res) => {
+    try {
+        const { description, address, phone, email } = req.body;
+        
+        let info = await WebsiteInfo.findOne();
+        if (!info) {
+            await WebsiteInfo.create({ description, address, phone, email });
+        } else {
+            info.description = description;
+            info.address = address;
+            info.phone = phone;
+            info.email = email;
+            await info.save();
+        }
+
+        return res.redirect('/pangkalan/carousel?success=info_edit');
+    } catch (error) {
+        console.error("ERROR UPDATE WEBSITE INFO:", error);
+        return res.redirect('/pangkalan/carousel?error=gagal');
     }
 };

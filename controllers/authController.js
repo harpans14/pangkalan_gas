@@ -38,16 +38,16 @@ exports.registerPembeli = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
-        const { username, password, role } = req.body;
+        const { username, password } = req.body;
 
-        const user = await User.findOne({ where: { username, role } });
+        const user = await User.findOne({ where: { username } });
         if (!user) {
-            return res.send("User tidak ditemukan!");
+            return res.render('login', { error: 'User tidak ditemukan!' });
         }
 
         const cocok = await bcrypt.compare(password, user.password);
         if (!cocok) {
-            return res.send("Password salah!");
+            return res.render('login', { error: 'Password salah!' });
         }
 
         req.session.userId = user.id;

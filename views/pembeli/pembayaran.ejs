@@ -14,47 +14,70 @@
 
 <div class="sidebar-gas" id="sidebar">
     <div class="sidebar-header">
-        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <h5><i class="bi bi-fire me-2"></i>Pangkalan Gas</h5>
         <small>Panel Pembeli</small>
     </div>
     <div class="sidebar-menu">
         <div class="nav-item">
-            <a class="nav-link" href="/pembeli/dashboard">
+            <a class="nav-link" href="/pembeli/dashboard?tab=tab-dashboard">
                 <i class="bi bi-speedometer2"></i> Dashboard
             </a>
         </div>
         <div class="nav-item">
-            <a class="nav-link" href="/pembeli/edit-profil">
-                <i class="bi bi-person-gear"></i> Edit Profil
+            <a class="nav-link" href="/pembeli/dashboard?tab=tab-pesan">
+                <i class="bi bi-cart-plus"></i> Pesan Gas
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pembeli/dashboard?tab=tab-riwayat">
+                <i class="bi bi-clock-history"></i> Riwayat
             </a>
         </div>
     </div>
     <div class="sidebar-footer">
-        <div class="user-info">
-            <div class="user-avatar"><%= session.username ? session.username.charAt(0).toUpperCase() : 'U' %></div>
-            <div>
-                <div style="font-weight:600;font-size:0.9rem;"><%= session.username || 'User' %></div>
-                <small class="text-muted">Pembeli</small>
+        <div class="dropdown">
+            <div class="user-info dropdown-toggle no-caret" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                <div class="user-avatar"><%= session.username ? session.username.charAt(0).toUpperCase() : 'U' %></div>
+                <div class="d-none d-md-block text-start">
+                    <div style="font-weight:600;font-size:0.85rem;"><%= session.username || 'User' %></div>
+                    <small class="text-muted" style="font-size:0.7rem;">Pembeli</small>
+                </div>
             </div>
-            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
-                <i class="bi bi-box-arrow-right"></i>
-            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="border-radius: 12px; min-width: 180px;">
+                <li class="px-3 py-2 border-bottom d-md-none">
+                    <div style="font-weight:600;font-size:0.85rem;color:var(--gray-800);"><%= session.username || 'User' %></div>
+                    <small class="text-muted" style="font-size:0.7rem;">Pembeli</small>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2" href="/pembeli/edit-profil">
+                        <i class="bi bi-person-gear me-2 text-primary"></i>Edit Profil
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                    <a class="dropdown-item py-2 text-danger" href="/logout">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </a>
+                </li>
+            </ul>
         </div>
     </div>
 </div>
 
 <div class="main-content page-entrance">
-    <div class="topbar">
-        <div class="d-flex align-items-center gap-3">
-            <button class="sidebar-toggle" id="sidebarToggle">
-                <i class="bi bi-list"></i>
-            </button>
-            <h5 class="mb-0 fw-bold">Pembayaran</h5>
-        </div>
-        <div></div>
-    </div>
-
     <div class="page-content">
+        <!-- Visible Header Section -->
+        <div class="d-flex align-items-center justify-content-between mb-4 reveal">
+            <div class="d-flex align-items-center gap-3">
+                <a href="/pembeli/dashboard" class="btn-gas-back" title="Kembali ke Dashboard">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div>
+                    <h4 class="mb-0 fw-bold text-gray-900">Pembayaran</h4>
+                    <p class="text-muted small mb-0">Selesaikan transaksi pembelian Anda</p>
+                </div>
+            </div>
+        </div>
         <% if (error === 'no_file') { %>
             <div class="alert alert-gas alert-gas-danger alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
                 <i class="bi bi-exclamation-triangle-fill"></i> Silakan pilih file bukti pembayaran terlebih dahulu.
@@ -176,7 +199,7 @@
                 </div>
 
                 <div class="text-center mt-3">
-                    <a href="/pembeli/dashboard" class="btn btn-gas btn-gas-secondary">
+                    <a href="/pembeli/dashboard" class="btn btn-gas btn-gas-cancel">
                         <i class="bi bi-arrow-left"></i> Kembali ke Dashboard
                     </a>
                 </div>

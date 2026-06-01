@@ -16,13 +16,18 @@
 <!-- SIDEBAR -->
 <div class="sidebar-gas" id="sidebar">
     <div class="sidebar-header">
-        <h5><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</h5>
+        <h5><i class="bi bi-fire me-2"></i>Pangkalan Gas</h5>
         <small>Panel Admin</small>
     </div>
     <div class="sidebar-menu">
         <div class="nav-item">
             <a class="nav-link active" href="/pangkalan/pesan-masuk">
                 <i class="bi bi-inbox"></i> Pesanan Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/riwayat-transaksi">
+                <i class="bi bi-clock-history"></i> Riwayat Transaksi
             </a>
         </div>
         <div class="nav-item">
@@ -53,6 +58,11 @@
         <div class="nav-item">
             <a class="nav-link" href="/pangkalan/daftar-pelanggan">
                 <i class="bi bi-person-plus"></i> Daftar Pelanggan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/carousel">
+                <i class="bi bi-images"></i> Kelola Banner
             </a>
         </div>
     </div>
@@ -196,25 +206,36 @@
                                 </td>
                                 <td><%= new Date(p.tanggal).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
                                 <td>
-                                    <div class="action-group justify-content-center" style="flex-wrap:wrap;gap:4px;">
-                                        <% if (p.bukti_pembayaran) { %>
-                                            <a href="<%= p.bukti_pembayaran %>" target="_blank" class="btn btn-gas btn-gas-accent btn-gas-sm" title="Lihat Bukti">
-                                                <i class="bi bi-eye"></i> Bukti
+                                        <div class="action-group justify-content-center" style="flex-wrap:wrap;gap:4px;">
+                                            <% if (p.bukti_pembayaran) { %>
+                                                <a href="<%= p.bukti_pembayaran %>" target="_blank" class="btn btn-gas btn-gas-accent btn-gas-sm" title="Lihat Bukti">
+                                                    <i class="bi bi-eye"></i> Bukti
+                                                </a>
+                                            <% } %>
+                                            <% if (p.status_pembayaran === 'menunggu_verifikasi') { %>
+                                                <form action="/pangkalan/konfirmasi-pembayaran" method="POST" style="display:inline;">
+                                                    <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                                    <button type="submit" class="btn btn-gas btn-gas-info btn-gas-sm" title="Konfirmasi Pembayaran" onclick="return confirm('Konfirmasi pembayaran ini?')">
+                                                        <i class="bi bi-cash-coin"></i> Konfirmasi Bayar
+                                                    </button>
+                                                </form>
+                                            <% } %>
+                                            <form action="/pangkalan/acc-proses" method="POST" style="display:inline;">
+                                                <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                                <button type="submit" class="btn btn-gas btn-gas-success btn-gas-sm">
+                                                    <i class="bi bi-check-lg"></i> ACC
+                                                </button>
+                                            </form>
+                                            <form action="/pangkalan/tolak-proses" method="POST" style="display:inline;">
+                                                <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                                <button type="submit" class="btn btn-gas btn-gas-danger btn-gas-sm" onclick="return confirm('Yakin ingin menolak pesanan ini?')">
+                                                    <i class="bi bi-x-lg"></i> Tolak
+                                                </button>
+                                            </form>
+                                            <a href="/pangkalan/struk/<%= p.id %>" target="_blank" class="btn btn-gas btn-gas-secondary btn-gas-sm" title="Cetak Struk">
+                                                <i class="bi bi-receipt"></i> Struk
                                             </a>
-                                        <% } %>
-                                        <form action="/pangkalan/acc-proses" method="POST" style="display:inline;">
-                                            <input type="hidden" name="id_transaksi" value="<%= p.id %>">
-                                            <button type="submit" class="btn btn-gas btn-gas-success btn-gas-sm">
-                                                <i class="bi bi-check-lg"></i> ACC
-                                            </button>
-                                        </form>
-                                        <form action="/pangkalan/tolak-proses" method="POST" style="display:inline;">
-                                            <input type="hidden" name="id_transaksi" value="<%= p.id %>">
-                                            <button type="submit" class="btn btn-gas btn-gas-danger btn-gas-sm" onclick="return confirm('Yakin ingin menolak pesanan ini?')">
-                                                <i class="bi bi-x-lg"></i> Tolak
-                                            </button>
-                                        </form>
-                                    </div>
+                                        </div>
                                 </td>
                             </tr>
                             <% }) } %>

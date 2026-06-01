@@ -14,7 +14,7 @@
 <nav class="navbar navbar-expand-lg navbar-gas">
     <div class="container">
         <a class="navbar-brand" href="/">
-            <span class="brand-icon"><i class="bi bi-fuel-pump"></i></span>
+            <span class="brand-icon"><i class="bi bi-fire"></i></span>
             Pangkalan Gas
         </a>
         <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarLanding" style="color:white;font-size:1.5rem;">
@@ -34,7 +34,7 @@
                 <% } else { %>
                     <li class="nav-item"><a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
                     <li class="nav-item ms-lg-2">
-                        <a class="btn btn-light btn-gas btn-gas-sm fw-bold text-gas-primary" href="/pangkalan/daftar-pelanggan">
+                        <a class="btn btn-light btn-gas btn-gas-sm fw-bold text-gas-primary" href="/daftar">
                             <i class="bi bi-person-plus"></i> Daftar
                         </a>
                     </li>
@@ -45,10 +45,55 @@
 </nav>
 
 <!-- HERO SECTION -->
-<section class="hero-section">
-    <div class="container position-relative">
+<section class="hero-section position-relative" style="padding: 8rem 0 7rem; overflow: hidden; background: #0f172a;">
+    <!-- Carousel Background -->
+    <div id="heroCarousel" class="carousel slide carousel-fade position-absolute top-0 start-0 w-100 h-100" data-bs-ride="carousel" data-bs-interval="4000" style="z-index: 1;">
+        <div class="carousel-inner w-100 h-100">
+            <% if (banners && banners.length > 0) { %>
+                <% banners.forEach((b, i) => { %>
+                    <div class="carousel-item <%= i === 0 ? 'active' : '' %> w-100 h-100">
+                        <img src="<%= b.imageUrl %>" class="w-100 h-100 object-fit-cover" alt="Banner <%= i + 1 %>">
+                        <% if (b.title || b.description) { %>
+                            <div class="carousel-caption d-none d-md-block" style="background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); border-radius: 12px; padding: 12px 24px; bottom: 30px; left: 5%; right: auto; text-align: left; max-width: 450px; border: 1px solid rgba(255, 255, 255, 0.15);">
+                                <% if (b.title) { %><h5 class="fw-bold mb-1 text-white"><%= b.title %></h5><% } %>
+                                <% if (b.description) { %><p class="small mb-0 text-white-50" style="font-size: 0.8rem; line-height: 1.4;"><%= b.description %></p> <% } %>
+                            </div>
+                        <% } %>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <!-- Fallback background images -->
+                <div class="carousel-item active w-100 h-100">
+                    <img src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=1200" class="w-100 h-100 object-fit-cover" alt="Sistem LPG">
+                    <div class="carousel-caption d-none d-md-block" style="background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); border-radius: 12px; padding: 12px 24px; bottom: 30px; left: 5%; right: auto; text-align: left; max-width: 450px; border: 1px solid rgba(255, 255, 255, 0.15);">
+                        <h5 class="fw-bold mb-1 text-white">Distribusi LPG Aman & Terpantau</h5>
+                        <p class="small mb-0 text-white-50" style="font-size: 0.8rem; line-height: 1.4;">Stok dan kuota tercatat real-time otomatis.</p>
+                    </div>
+                </div>
+                <div class="carousel-item w-100 h-100">
+                    <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=1200" class="w-100 h-100 object-fit-cover" alt="Logistik Pengiriman">
+                    <div class="carousel-caption d-none d-md-block" style="background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); border-radius: 12px; padding: 12px 24px; bottom: 30px; left: 5%; right: auto; text-align: left; max-width: 450px; border: 1px solid rgba(255, 255, 255, 0.15);">
+                        <h5 class="fw-bold mb-1 text-white">Pengelolaan Stok & Barang Masuk</h5>
+                        <p class="small mb-0 text-white-50" style="font-size: 0.8rem; line-height: 1.4;">Mendukung pencatatan tabung isi dan kosong.</p>
+                    </div>
+                </div>
+                <div class="carousel-item w-100 h-100">
+                    <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=1200" class="w-100 h-100 object-fit-cover" alt="Transaksi Digital">
+                    <div class="carousel-caption d-none d-md-block" style="background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); border-radius: 12px; padding: 12px 24px; bottom: 30px; left: 5%; right: auto; text-align: left; max-width: 450px; border: 1px solid rgba(255, 255, 255, 0.15);">
+                        <h5 class="fw-bold mb-1 text-white">Transaksi Mudah & Praktis</h5>
+                        <p class="small mb-0 text-white-50" style="font-size: 0.8rem; line-height: 1.4;">Mendukung pembayaran transfer bank dan QRIS.</p>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+        <!-- Dark overlay to ensure text readability -->
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 41, 59, 0.75) 50%, rgba(12, 74, 110, 0.7) 100%); z-index: 2;"></div>
+    </div>
+
+    <!-- Hero Content -->
+    <div class="container position-relative" style="z-index: 3;">
         <div class="row align-items-center">
-            <div class="col-lg-7">
+            <div class="col-lg-8">
                 <h1>Sistem Distribusi Gas LPG<br>Pangkalan Gas</h1>
                 <p>Platform manajemen penjualan dan distribusi gas LPG yang memudahkan pangkalan dalam mengelola stok, pesanan, dan laporan penjualan secara efisien dan real-time.</p>
                 <div class="hero-buttons d-flex flex-wrap gap-3">
@@ -60,14 +105,11 @@
                         <a href="/login" class="btn btn-light btn-gas btn-gas-lg fw-bold text-gas-primary">
                             <i class="bi bi-box-arrow-in-right"></i> Login
                         </a>
-                        <a href="/pangkalan/daftar-pelanggan" class="btn btn-gas btn-gas-lg fw-bold" style="background:rgba(255,255,255,0.15);color:white;border:2px solid rgba(255,255,255,0.3);">
+                        <a href="/daftar" class="btn btn-gas btn-gas-lg fw-bold" style="background:rgba(255,255,255,0.15);color:white;border:2px solid rgba(255,255,255,0.3);">
                             <i class="bi bi-person-plus"></i> Daftar
                         </a>
                     <% } %>
                 </div>
-            </div>
-            <div class="col-lg-5 text-center d-none d-lg-block">
-                <div style="font-size:10rem;opacity:0.2;line-height:1;">⛽</div>
             </div>
         </div>
     </div>
@@ -166,7 +208,7 @@
                             <li><i class="bi bi-check-circle-fill"></i> Pilih ambil atau kirim</li>
                         </ul>
                         <% if (!(session && session.userId)) { %>
-                            <a href="/pangkalan/daftar-pelanggan" class="btn btn-gas btn-gas-secondary w-100 mt-3">
+                            <a href="/daftar" class="btn btn-gas btn-gas-secondary w-100 mt-3">
                                 <i class="bi bi-person-plus"></i> Daftar sebagai Pembeli
                             </a>
                         <% } %>
@@ -183,8 +225,8 @@
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-4">
-                    <div class="footer-brand"><i class="bi bi-fuel-pump me-2"></i>Pangkalan Gas</div>
-                    <p style="font-size:0.9rem;">Sistem distribusi gas LPG terpercaya untuk memudahkan pengelolaan penjualan, stok, dan laporan pangkalan gas di seluruh Indonesia.</p>
+                    <div class="footer-brand"><i class="bi bi-fire me-2"></i>Pangkalan Gas</div>
+                    <p style="font-size:0.9rem;"><%= websiteInfo.description %></p>
                 </div>
                 <div class="col-lg-2 col-md-4">
                     <h6>Navigasi</h6>
@@ -200,15 +242,15 @@
                     <div class="d-flex flex-column gap-2">
                         <a href="/pangkalan/daftar-pelanggan">Daftar Pelanggan</a>
                         <a href="/login">Pesanan Gas</a>
-                        <a href="/login">Cek Stok</a>
+                        <a href="<%= session && session.role === 'pangkalan' ? '/pangkalan/tabung' : '/login' %>">Cek Stok</a>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-4">
                     <h6>Kontak</h6>
                     <div class="d-flex flex-column gap-2">
-                        <a href="#"><i class="bi bi-geo-alt me-1"></i> Pangkalan Gas</a>
-                        <a href="#"><i class="bi bi-telephone me-1"></i> 0857-xxxx-xxxx</a>
-                        <a href="#"><i class="bi bi-envelope me-1"></i> info@pangkalan-gas.id</a>
+                        <a href="#"><i class="bi bi-geo-alt me-1"></i> <%= websiteInfo.address %></a>
+                        <a href="#"><i class="bi bi-telephone me-1"></i> <%= websiteInfo.phone %></a>
+                        <a href="#"><i class="bi bi-envelope me-1"></i> <%= websiteInfo.email %></a>
                     </div>
                 </div>
             </div>
