@@ -838,6 +838,28 @@ exports.downloadLaporanPDF = async (req, res) => {
     }
 };
 
+exports.getStruk = async (req, res) => {
+    try {
+        const transaksi = await Transaksi.findByPk(req.params.id, {
+            include: [
+                { model: User, attributes: ['username', 'alamat'] },
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ]
+        });
+
+        if (!transaksi) {
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        const totalHarga = (transaksi.Produk ? transaksi.Produk.harga : 0) * transaksi.jumlah_beli;
+
+        res.render('pembeli/struk', { transaksi, totalHarga });
+    } catch (error) {
+        console.error("ERROR STRUK:", error);
+        res.status(500).send("Gagal memuat struk: " + error.message);
+    }
+};
+
 exports.getCarousel = async (req, res) => {
     try {
         const banners = await CarouselImage.findAll({ order: [['createdAt', 'DESC']] });

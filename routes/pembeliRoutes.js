@@ -11,6 +11,7 @@ router.get('/edit-profil', pembeliController.getEditProfil);
 router.post('/edit-profil', pembeliController.updateProfil);
 router.post('/pesan', pembeliController.pesanGas);
 router.get('/pembayaran/:id', pembeliController.getPembayaran);
+router.get('/struk/:id', pembeliController.getStruk);
 router.post('/upload-bukti/:id', (req, res, next) => {
     upload.single('bukti_pembayaran')(req, res, (err) => {
         if (err) {

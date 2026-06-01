@@ -201,25 +201,36 @@
                                 </td>
                                 <td><%= new Date(p.tanggal).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) %></td>
                                 <td>
-                                    <div class="action-group justify-content-center" style="flex-wrap:wrap;gap:4px;">
-                                        <% if (p.bukti_pembayaran) { %>
-                                            <a href="<%= p.bukti_pembayaran %>" target="_blank" class="btn btn-gas btn-gas-accent btn-gas-sm" title="Lihat Bukti">
-                                                <i class="bi bi-eye"></i> Bukti
+                                        <div class="action-group justify-content-center" style="flex-wrap:wrap;gap:4px;">
+                                            <% if (p.bukti_pembayaran) { %>
+                                                <a href="<%= p.bukti_pembayaran %>" target="_blank" class="btn btn-gas btn-gas-accent btn-gas-sm" title="Lihat Bukti">
+                                                    <i class="bi bi-eye"></i> Bukti
+                                                </a>
+                                            <% } %>
+                                            <% if (p.status_pembayaran === 'menunggu_verifikasi') { %>
+                                                <form action="/pangkalan/konfirmasi-pembayaran" method="POST" style="display:inline;">
+                                                    <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                                    <button type="submit" class="btn btn-gas btn-gas-info btn-gas-sm" title="Konfirmasi Pembayaran" onclick="return confirm('Konfirmasi pembayaran ini?')">
+                                                        <i class="bi bi-cash-coin"></i> Konfirmasi Bayar
+                                                    </button>
+                                                </form>
+                                            <% } %>
+                                            <form action="/pangkalan/acc-proses" method="POST" style="display:inline;">
+                                                <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                                <button type="submit" class="btn btn-gas btn-gas-success btn-gas-sm">
+                                                    <i class="bi bi-check-lg"></i> ACC
+                                                </button>
+                                            </form>
+                                            <form action="/pangkalan/tolak-proses" method="POST" style="display:inline;">
+                                                <input type="hidden" name="id_transaksi" value="<%= p.id %>">
+                                                <button type="submit" class="btn btn-gas btn-gas-danger btn-gas-sm" onclick="return confirm('Yakin ingin menolak pesanan ini?')">
+                                                    <i class="bi bi-x-lg"></i> Tolak
+                                                </button>
+                                            </form>
+                                            <a href="/pangkalan/struk/<%= p.id %>" target="_blank" class="btn btn-gas btn-gas-secondary btn-gas-sm" title="Cetak Struk">
+                                                <i class="bi bi-receipt"></i> Struk
                                             </a>
-                                        <% } %>
-                                        <form action="/pangkalan/acc-proses" method="POST" style="display:inline;">
-                                            <input type="hidden" name="id_transaksi" value="<%= p.id %>">
-                                            <button type="submit" class="btn btn-gas btn-gas-success btn-gas-sm">
-                                                <i class="bi bi-check-lg"></i> ACC
-                                            </button>
-                                        </form>
-                                        <form action="/pangkalan/tolak-proses" method="POST" style="display:inline;">
-                                            <input type="hidden" name="id_transaksi" value="<%= p.id %>">
-                                            <button type="submit" class="btn btn-gas btn-gas-danger btn-gas-sm" onclick="return confirm('Yakin ingin menolak pesanan ini?')">
-                                                <i class="bi bi-x-lg"></i> Tolak
-                                            </button>
-                                        </form>
-                                    </div>
+                                        </div>
                                 </td>
                             </tr>
                             <% }) } %>

@@ -251,3 +251,26 @@ exports.uploadBukti = async (req, res) => {
         res.status(500).send("Terjadi kesalahan: " + error.message);
     }
 };
+
+exports.getStruk = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const transaksi = await Transaksi.findByPk(req.params.id, {
+            include: [
+                { model: User, attributes: ['username', 'alamat'] },
+                { model: Produk, attributes: ['nama', 'harga'] }
+            ]
+        });
+
+        if (!transaksi || transaksi.user_id !== userId) {
+            return res.status(404).send("Transaksi tidak ditemukan");
+        }
+
+        const totalHarga = (transaksi.Produk ? transaksi.Produk.harga : 0) * transaksi.jumlah_beli;
+
+        res.render('pembeli/struk', { transaksi, totalHarga });
+    } catch (error) {
+        console.error("EROR STRUK:", error);
+        res.status(500).send("Terjadi kesalahan: " + error.message);
+    }
+};

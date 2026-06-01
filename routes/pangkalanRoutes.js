@@ -7,6 +7,7 @@ const upload = require('../utils/upload');
 router.use(isLoggedIn, isRole('pangkalan'));
 
 router.get('/pesan-masuk', pangkalanController.getPesananMasuk);
+router.get('/struk/:id', pangkalanController.getStruk);
 router.post('/acc-proses', pangkalanController.accPesanan);
 router.post('/tolak-proses', pangkalanController.tolakPesanan);
 router.post('/konfirmasi-pembayaran', pangkalanController.konfirmasiPembayaran);

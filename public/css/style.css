@@ -525,6 +525,9 @@ body:not(.auth-page) {
 .btn-gas-accent { background: linear-gradient(135deg, var(--accent), #d97706); color: var(--white); }
 .btn-gas-accent:hover { background: linear-gradient(135deg, #d97706, #b45309); color: var(--white); }
 
+.btn-gas-info { background: linear-gradient(135deg, var(--info), #0284c7); color: var(--white); }
+.btn-gas-info:hover { background: linear-gradient(135deg, #0284c7, #0369a1); color: var(--white); }
+
 .btn-gas-danger {
     background: linear-gradient(135deg, var(--danger), #dc2626);
     color: var(--white);
