@@ -80,37 +80,61 @@
         }
     }
 
-    /* ===== ANIMATED ALERTS ===== */
+    /* ===== ANIMATED ALERTS (SWEETALERT2) ===== */
     function initAutoAlerts() {
-        var alerts = document.querySelectorAll('.alert-dismissible');
+        var alerts = document.querySelectorAll('.alert-gas');
+        if (alerts.length === 0) return;
+
+        // Check if SweetAlert2 is loaded, otherwise load dynamically
+        if (typeof Swal === 'undefined') {
+            const swalScript = document.createElement('script');
+            swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+            swalScript.onload = function() {
+                triggerSweetAlerts(alerts);
+            };
+            document.head.appendChild(swalScript);
+        } else {
+            triggerSweetAlerts(alerts);
+        }
+    }
+
+    function triggerSweetAlerts(alerts) {
         alerts.forEach(function(alert) {
-            var autoDismiss = alert.getAttribute('data-auto-dismiss');
-            var delay = autoDismiss ? parseInt(autoDismiss) : 5000;
+            // Only convert flash/dismissible alerts into popups
+            if (!alert.classList.contains('alert-dismissible')) return;
 
-            setTimeout(function() {
-                if (alert && alert.parentNode) {
-                    alert.classList.add('alert-dismissing');
-                    setTimeout(function() {
-                        if (alert && alert.parentNode) {
-                            var bsAlert = new bootstrap.Alert(alert);
-                            bsAlert.close();
-                        }
-                    }, 300);
-                }
-            }, delay);
-        });
+            var alertClone = alert.cloneNode(true);
+            var btnClose = alertClone.querySelector('.btn-close');
+            if (btnClose) btnClose.remove();
+            var icon = alertClone.querySelector('.bi');
+            if (icon) icon.remove();
+            var text = alertClone.textContent.trim();
 
-        document.querySelectorAll('.alert-gas .btn-close').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                var alert = this.closest('.alert-gas');
-                if (alert) {
-                    e.preventDefault();
-                    alert.classList.add('alert-dismissing');
-                    setTimeout(function() {
-                        var bsAlert = new bootstrap.Alert(alert);
-                        bsAlert.close();
-                    }, 300);
-                }
+            var iconType = 'info';
+            if (alert.classList.contains('alert-gas-success')) {
+                iconType = 'success';
+            } else if (alert.classList.contains('alert-gas-danger')) {
+                iconType = 'error';
+            } else if (alert.classList.contains('alert-gas-warning')) {
+                iconType = 'warning';
+            }
+
+            // Hide original element
+            alert.style.display = 'none';
+
+            // Trigger Premium Centered Dialog
+            Swal.fire({
+                icon: iconType,
+                title: iconType === 'success' ? 'Berhasil' : (iconType === 'error' ? 'Gagal' : 'Peringatan'),
+                text: text,
+                showConfirmButton: true,
+                confirmButtonText: 'Selesai',
+                confirmButtonColor: iconType === 'success' ? '#10b981' : (iconType === 'error' ? '#ef4444' : '#f59e0b'),
+                background: '#ffffff',
+                customClass: {
+                    popup: 'swal2-premium-popup shadow-xl'
+                },
+                buttonsStyling: true
             });
         });
     }

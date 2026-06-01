@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi Langsung - Pangkalan Gas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar-gas" id="sidebar">
+    <div class="sidebar-header">
+        <h5><i class="bi bi-fire me-2"></i>Pangkalan Gas</h5>
+        <small>Panel Admin</small>
+    </div>
+    <div class="sidebar-menu">
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/pesan-masuk">
+                <i class="bi bi-inbox"></i> Pesanan Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/riwayat-transaksi">
+                <i class="bi bi-clock-history"></i> Riwayat Transaksi
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/kelola-produk">
+                <i class="bi bi-box"></i> Kelola Produk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/barang-masuk">
+                <i class="bi bi-arrow-down-circle"></i> Barang Masuk
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/tabung">
+                <i class="bi bi-archive"></i> Manajemen Tabung
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/laporan">
+                <i class="bi bi-file-earmark-bar-graph"></i> Laporan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link active" href="/pangkalan/transaksi-langsung">
+                <i class="bi bi-cart-check"></i> Transaksi Langsung
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/daftar-pelanggan">
+                <i class="bi bi-person-plus"></i> Daftar Pelanggan
+            </a>
+        </div>
+        <div class="nav-item">
+            <a class="nav-link" href="/pangkalan/carousel">
+                <i class="bi bi-images"></i> Kelola Banner
+            </a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar"><%= username.charAt(0).toUpperCase() %></div>
+            <div>
+                <div style="font-weight:600;font-size:0.9rem;"><%= username %></div>
+                <small class="text-muted">Pangkalan</small>
+            </div>
+            <a href="/logout" class="ms-auto btn btn-sm btn-gas btn-gas-danger" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="main-content page-entrance">
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Transaksi Langsung</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-done"><i class="bi bi-person-check"></i> Layani Pelanggan</span>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <%
+        function getAlertMsg() {
+            if (success === 'transaksi_berhasil') return { msg: 'Transaksi berhasil dicatat!', type: 'success' };
+            if (error === 'pelanggan_tidak_ditemukan') return { msg: 'Pelanggan dengan NIK tersebut tidak ditemukan.', type: 'danger' };
+            if (error === 'invalid_input') return { msg: 'Data transaksi tidak valid!', type: 'danger' };
+            if (error === 'produk_tidak_ditemukan') return { msg: 'Produk tidak ditemukan.', type: 'danger' };
+            if (error === 'stok_tidak_cukup') return { msg: 'Stok produk tidak mencukupi untuk jumlah tersebut.', type: 'danger' };
+            if (error === 'kuota_habis') return { msg: 'Kuota mingguan pelanggan sudah habis!', type: 'warning' };
+            if (error === 'server_error') return { msg: 'Terjadi kesalahan server. Silakan coba lagi.', type: 'danger' };
+            return null;
+        }
+        var alertData = getAlertMsg();
+        %>
+        <% if (alertData) { %>
+            <div class="alert alert-gas alert-gas-<%= alertData.type %> alert-dismissible fade show" role="alert" data-auto-dismiss="5000">
+                <i class="bi <%= alertData.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' %>"></i>
+                <%= alertData.msg %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- SEARCH FORM -->
+        <div class="card-gas mb-4 reveal">
+            <div class="card-header bg-gas-primary text-white">
+                <i class="bi bi-search me-2"></i>Cari Pelanggan
+            </div>
+            <div class="card-body">
+                <form method="GET" action="/pangkalan/transaksi-langsung" class="row g-3 align-items-end form-gas">
+                    <div class="col-md-6">
+                        <label class="form-label">Masukkan Nomor KTP / NIK Pelanggan</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-credit-card text-gas-primary"></i></span>
+                            <input type="text" name="no_ktp" class="form-control form-control-lg" placeholder="Scan atau ketik Nomor KTP (16 digit)" value="<%= cariKtp %>" minlength="16" maxlength="16" pattern="[0-9]{16}" title="Harus 16 digit angka" oninput="this.value=this.value.replace(/\D/g,'')" required>
+                            <button type="submit" class="btn btn-gas btn-gas-primary btn-lg">
+                                <i class="bi bi-search"></i> Cari
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <% if (!searched) { %>
+        <!-- EMPTY STATE -->
+        <div class="card-gas reveal">
+            <div class="card-body">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-person-badge"></i></div>
+                    <h5>Cari Pelanggan</h5>
+                    <p>Masukkan nomor KTP pelanggan untuk memulai transaksi langsung.</p>
+                </div>
+            </div>
+        </div>
+        <% } else if (!found) { %>
+        <!-- NOT FOUND -->
+        <div class="card-gas reveal">
+            <div class="card-body">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-exclamation-circle text-danger"></i></div>
+                    <h5>Pelanggan Tidak Ditemukan</h5>
+                    <p>Tidak ada pelanggan dengan NIK <strong><%= cariKtp %></strong> yang terdaftar di sistem.</p>
+                    <a href="/pangkalan/daftar-pelanggan" class="btn btn-gas btn-gas-primary mt-3">
+                        <i class="bi bi-person-plus"></i> Daftarkan Pelanggan Baru
+                    </a>
+                </div>
+            </div>
+        </div>
+        <% } else { %>
+        <!-- CUSTOMER FOUND -->
+        <div class="row g-4">
+            <!-- PROFILE CARD -->
+            <div class="col-lg-4">
+                <div class="card-gas profile-card reveal">
+                    <div class="profile-card-header">
+                        <div class="profile-avatar">
+                            <% if (pelanggan.foto) { %>
+                                <img src="<%= pelanggan.foto %>" alt="Foto Profil">
+                            <% } else { %>
+                                <div class="profile-avatar-initial"><%= pelanggan.username.charAt(0).toUpperCase() %></div>
+                            <% } %>
+                        </div>
+                        <h5 class="profile-name"><%= pelanggan.username %></h5>
+                        <span class="profile-badge <%= pelanggan.sub_role === 'rumahtangga' ? 'badge-pending' : 'badge-approved' %>">
+                            <i class="bi <%= pelanggan.sub_role === 'rumahtangga' ? 'bi-house-door' : 'bi-shop' %>"></i>
+                            <%= pelanggan.sub_role === 'rumahtangga' ? 'Rumah Tangga' : 'Usaha Mikro' %>
+                        </span>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="profile-info">
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-credit-card"></i> NIK/KTP</span>
+                                <span class="profile-info-value"><%= pelanggan.no_ktp %></span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-geo-alt"></i> Alamat</span>
+                                <span class="profile-info-value"><%= pelanggan.alamat || '-' %></span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-telephone"></i> Nomor HP</span>
+                                <span class="profile-info-value"><%= pelanggan.nomor_hp || '-' %></span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-info-label"><i class="bi bi-calendar-check"></i> Terdaftar</span>
+                                <span class="profile-info-value"><%= formatTanggal(pelanggan.createdAt) %></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUOTA & STATS -->
+            <div class="col-lg-8">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4 reveal-left">
+                        <div class="card-stat stat-teal h-100">
+                            <div class="stat-icon"><i class="bi bi-ticket-perforated"></i></div>
+                            <div class="stat-label">Jatah 3Kg / Minggu</div>
+                            <div class="stat-value"><%= maks3Kg > 0 ? maks3Kg + ' Tabung' : '-' %></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 reveal-left">
+                        <div class="card-stat stat-amber h-100">
+                            <div class="stat-icon"><i class="bi bi-cart-check"></i></div>
+                            <div class="stat-label">Sudah Dibeli (3Kg)</div>
+                            <div class="stat-value"><%= total3KgMingguIni %> Tabung</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 reveal-left">
+                        <div class="card-stat <%= sisa3Kg > 0 ? 'stat-green' : (maks3Kg > 0 ? 'stat-red' : 'stat-teal') %> h-100">
+                            <div class="stat-icon"><i class="bi bi-<%= sisa3Kg > 0 ? 'check-circle' : (maks3Kg > 0 ? 'x-circle' : 'check-circle') %>"></i></div>
+                            <div class="stat-label">Sisa Kuota 3Kg</div>
+                            <div class="stat-value"><%= maks3Kg > 0 ? sisa3Kg + ' Tabung' : 'Bebas' %></div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i> Kuota hanya berlaku untuk Gas 3Kg. Produk lain (5Kg, 12Kg) tanpa batas pembelian.</p>
+
+                <!-- TRANSACTION FORM -->
+                <% if (produkList.length > 0 && found) { %>
+                <div class="card-gas mb-4 reveal">
+                    <div class="card-header bg-gas-success text-white">
+                        <i class="bi bi-cart-plus me-2"></i>Buat Transaksi Langsung
+                    </div>
+                    <div class="card-body">
+                        <form action="/pangkalan/transaksi-langsung/proses" method="POST" class="row g-3 align-items-end form-gas">
+                            <input type="hidden" name="user_id" value="<%= pelanggan.id %>">
+                            <div class="col-md-5">
+                                <label class="form-label">Pilih Produk</label>
+                                <select name="produk_id" id="produkSelect" class="form-select form-select-lg" required onchange="updateJumlahMax()">
+                                    <option value="">-- Pilih Produk --</option>
+                                    <% produkList.forEach(p => { %>
+                                        <option value="<%= p.id %>"
+                                            data-nama="<%= p.nama.toLowerCase() %>"
+                                            <%= p.stok <= 0 ? 'disabled' : '' %>>
+                                            <%= p.nama %> - Rp <%= (p.harga || 0).toLocaleString() %> (Stok: <%= p.stok %>)
+                                        </option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Jumlah Tabung</label>
+                                <input type="number" name="jumlah_beli" id="jumlahBeli" class="form-control form-control-lg" min="1" required>
+                                <small id="kuotaInfo" class="text-muted"></small>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-gas btn-gas-success btn-lg w-100">
+                                    <i class="bi bi-check-circle"></i> Proses Transaksi
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <% if (maks3Kg > 0 && sisa3Kg <= 0) { %>
+                <div class="alert alert-gas alert-gas-warning alert-dismissible fade show reveal" role="alert" data-auto-dismiss="8000">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Kuota Gas 3Kg minggu ini sudah habis (<strong><%= total3KgMingguIni %></strong>/<strong><%= maks3Kg %></strong> tabung). Pembelian 3Kg tidak dapat dilakukan.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } else if (produkList.length === 0 && found) { %>
+                <div class="alert alert-gas alert-gas-warning alert-dismissible fade show reveal" role="alert" data-auto-dismiss="8000">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Belum ada produk yang tersedia. Silakan tambah produk terlebih dahulu.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
+                <% } %>
+
+                <!-- RECENT TRANSACTIONS -->
+                <div class="card-gas reveal">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-clock-history me-2"></i>Riwayat Transaksi Terakhir</span>
+                        <span class="badge bg-gas-primary"><%= riwayatTransaksi.length %> Transaksi</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table-gas mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <th>Produk</th>
+                                        <th>Jumlah</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (riwayatTransaksi.length === 0) { %>
+                                    <tr>
+                                        <td colspan="5">
+                                            <div class="empty-state py-3">
+                                                <div class="empty-icon" style="font-size:2rem;"><i class="bi bi-receipt"></i></div>
+                                                <h5>Belum Ada Transaksi</h5>
+                                                <p>Pelanggan ini belum memiliki riwayat transaksi.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <% } else { %>
+                                    <% riwayatTransaksi.forEach(t => { %>
+                                    <tr>
+                                        <td><%= formatTanggal(t.createdAt) %></td>
+                                        <td class="fw-bold"><%= t.Produk ? t.Produk.nama : '-' %></td>
+                                        <td><%= t.jumlah_beli %> Tabung</td>
+                                        <td class="fw-bold"><%= t.Produk ? formatRupiah(t.Produk.harga * t.jumlah_beli) : '-' %></td>
+                                        <td>
+                                            <% let badgeClass = 'bg-secondary'; %>
+                                            <% if (t.status === 'disetujui' || t.status === 'ACC') { badgeClass = 'badge-approved'; } %>
+                                            <% if (t.status === 'selesai') { badgeClass = 'badge-done'; } %>
+                                            <% if (t.status === 'pending') { badgeClass = 'badge-pending'; } %>
+                                            <% if (t.status === 'ditolak') { badgeClass = 'badge-rejected'; } %>
+                                            <span class="badge-gas <%= badgeClass %>">
+                                                <i class="bi <%= t.status === 'pending' ? 'bi-clock' : t.status === 'ditolak' ? 'bi-x-circle' : t.status === 'selesai' ? 'bi-check-all' : 'bi-check-circle' %>"></i>
+                                                <%= t.status.charAt(0).toUpperCase() + t.status.slice(1) %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<style>
+.profile-card {
+    overflow: hidden;
+    border: none;
+    border-radius: var(--radius-xl);
+}
+.profile-card-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: var(--white);
+    padding: 2rem 1.5rem 1.5rem;
+    text-align: center;
+}
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.profile-avatar-initial {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--white);
+}
+.profile-name {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+}
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.profile-card-body {
+    padding: 1.25rem 1.5rem;
+}
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.profile-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--gray-100);
+}
+.profile-info-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.profile-info-label {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.profile-info-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    padding-left: 1.5rem;
+}
+</style>
+
+<script>
+function updateJumlahMax() {
+    const select = document.getElementById('produkSelect');
+    const input = document.getElementById('jumlahBeli');
+    const info = document.getElementById('kuotaInfo');
+    const option = select.options[select.selectedIndex];
+    if (!option || !option.value) {
+        input.max = '';
+        input.placeholder = '';
+        info.textContent = '';
+        return;
+    }
+    const nama = (option.getAttribute('data-nama') || '').toLowerCase();
+    const is3Kg = nama.includes('3kg');
+    const sisa3Kg = <%= sisa3Kg %>;
+    const stok = option.disabled ? 0 : parseInt(option.textContent.match(/Stok:\s*(\d+)/)?.[1] || 0);
+
+    if (is3Kg) {
+        const max = Math.min(sisa3Kg, stok);
+        input.max = max;
+        input.placeholder = 'Maks ' + max;
+        info.innerHTML = 'Sisa kuota 3Kg: <strong>' + sisa3Kg + '</strong> tabung';
+    } else {
+        input.max = stok;
+        input.placeholder = 'Maks ' + stok;
+        info.innerHTML = 'Produk non-3Kg, bebas batas.';
+    }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>
