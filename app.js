@@ -13,24 +13,22 @@ const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const app = express();
 
 const db = require('./models');
+const sessionStore = new SequelizeStore({ db: db.sequelize });
 
-async function initDb() {
+let dbReady = false;
+const initDbPromise = (async () => {
     try {
-        if (process.env.NODE_ENV === 'production') {
-            await db.sequelize.authenticate();
-            console.log('Database connected successfully.');
-        } else {
-            await db.sequelize.sync({ alter: true });
-            console.log('Database synced successfully.');
-        }
-        await db.sequelize.sync();
+        await db.sequelize.authenticate();
+        console.log('Database connected successfully.');
+        await db.sequelize.sync({ alter: true });
+        console.log('Database synced successfully.');
+        await sessionStore.sync();
         console.log('Session table synced.');
     } catch (err) {
         console.error('Database connection failed:', err.message);
-        console.error('Check DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS env vars');
     }
-}
-initDb();
+    dbReady = true;
+})();
 
 const pangkalanRoutes = require('./routes/pangkalanRoutes');
 const pembeliRoutes = require('./routes/pembeliRoutes');
@@ -45,9 +43,16 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use(async (req, res, next) => {
+    if (!dbReady) {
+        await initDbPromise;
+    }
+    next();
+});
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'rahasia_pangkalan_gas',
-    store: new SequelizeStore({ db: db.sequelize }),
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     proxy: true
