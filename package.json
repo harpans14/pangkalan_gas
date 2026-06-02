@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "connect-session-sequelize": "^8.0.6",
     "dotenv": "^17.4.2",
     "ejs": "^5.0.2",
     "express": "^5.2.1",

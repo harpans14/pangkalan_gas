@@ -9,6 +9,7 @@ process.on('unhandledRejection', (reason) => {
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const app = express();
 
 const db = require('./models');
@@ -22,6 +23,8 @@ async function initDb() {
             await db.sequelize.sync({ alter: true });
             console.log('Database synced successfully.');
         }
+        await db.sequelize.sync();
+        console.log('Session table synced.');
     } catch (err) {
         console.error('Database connection failed:', err.message);
         console.error('Check DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS env vars');
@@ -44,8 +47,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'rahasia_pangkalan_gas',
+    store: new SequelizeStore({ db: db.sequelize }),
     resave: false,
-    saveUninitialized: true
+    saveUninitialized: false,
+    proxy: true
 }));
 
 app.use((req, res, next) => {
