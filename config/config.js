@@ -1,4 +1,8 @@
-require('dotenv').config();
+try {
+    require('dotenv').config();
+} catch (err) {
+    console.warn('[Config] dotenv not available, using env vars:', err.message);
+}
 
 module.exports = {
   development: {

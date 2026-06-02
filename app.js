@@ -1,3 +1,11 @@
+process.on('uncaughtException', err => {
+    console.error('[FATAL] Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[FATAL] Unhandled rejection:', reason);
+});
+
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
@@ -5,15 +13,21 @@ const app = express();
 
 const db = require('./models');
 
-if (process.env.NODE_ENV === 'production') {
-    db.sequelize.authenticate()
-        .then(() => console.log('Database connected successfully.'))
-        .catch(err => console.error('Database connection failed:', err));
-} else {
-    db.sequelize.sync({ alter: true })
-        .then(() => console.log('Database synced successfully.'))
-        .catch(err => console.error('Database sync failed:', err));
+async function initDb() {
+    try {
+        if (process.env.NODE_ENV === 'production') {
+            await db.sequelize.authenticate();
+            console.log('Database connected successfully.');
+        } else {
+            await db.sequelize.sync({ alter: true });
+            console.log('Database synced successfully.');
+        }
+    } catch (err) {
+        console.error('Database connection failed:', err.message);
+        console.error('Check DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS env vars');
+    }
 }
+initDb();
 
 const pangkalanRoutes = require('./routes/pangkalanRoutes');
 const pembeliRoutes = require('./routes/pembeliRoutes');
