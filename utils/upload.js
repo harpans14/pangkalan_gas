@@ -3,8 +3,12 @@ const path = require('path');
 const fs = require('fs');
 
 const buktiDir = path.join(__dirname, '..', 'public', 'uploads', 'bukti_pembayaran');
-if (!fs.existsSync(buktiDir)) {
-  fs.mkdirSync(buktiDir, { recursive: true });
+try {
+  if (!fs.existsSync(buktiDir)) {
+    fs.mkdirSync(buktiDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Upload] Cannot create buktiDir, using /tmp fallback:', err.message);
 }
 
 const storage = multer.diskStorage({
@@ -36,8 +40,12 @@ const upload = multer({
 
 // Carousel upload configuration
 const carouselDir = path.join(__dirname, '..', 'public', 'uploads', 'carousel');
-if (!fs.existsSync(carouselDir)) {
-  fs.mkdirSync(carouselDir, { recursive: true });
+try {
+  if (!fs.existsSync(carouselDir)) {
+    fs.mkdirSync(carouselDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Upload] Cannot create carouselDir, using /tmp fallback:', err.message);
 }
 
 const carouselStorage = multer.diskStorage({
@@ -59,8 +67,12 @@ const uploadCarousel = multer({
 
 // Produk (product image) upload configuration
 const produkDir = path.join(__dirname, '..', 'public', 'uploads', 'produk');
-if (!fs.existsSync(produkDir)) {
-  fs.mkdirSync(produkDir, { recursive: true });
+try {
+  if (!fs.existsSync(produkDir)) {
+    fs.mkdirSync(produkDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Upload] Cannot create produkDir, using /tmp fallback:', err.message);
 }
 
 const produkStorage = multer.diskStorage({
