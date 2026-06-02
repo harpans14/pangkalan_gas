@@ -3,6 +3,10 @@ const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');
+let waNotifier = null;
+if (process.env.NODE_ENV !== 'production') {
+    waNotifier = require('../utils/waNotifier');
+}
 
 exports.getDashboard = async (req, res) => {
     try {
@@ -182,6 +186,17 @@ exports.pesanGas = async (req, res) => {
             status: 'pending',
             tanggal: new Date()
         });
+
+        if (metode === 'kirim') {
+            const user = await User.findByPk(userId);
+            if (waNotifier) {
+                waNotifier.kirimNotifikasiPesanan(user.username, user.alamat, produk.nama, jml)
+                    .then(sent => {
+                        if (!sent) console.log('[WA] Notifikasi tidak terkirim (client mungkin belum siap)');
+                    })
+                    .catch(err => console.error('[WA] Gagal kirim notifikasi:', err.message));
+            }
+        }
 
         if (metode_pembayaran === 'cod') {
             return res.redirect('/pembeli/dashboard?success=true');

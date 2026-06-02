@@ -63,7 +63,7 @@ app.use(async (req, res, next) => {
             info = await db.WebsiteInfo.create({
                 description: 'Sistem distribusi gas LPG terpercaya untuk memudahkan pengelolaan penjualan, stok, dan laporan pangkalan gas di seluruh Indonesia.',
                 address: 'Pangkalan Gas Utama, Kota Bandung, Jawa Barat',
-                phone: '0857-1234-5678',
+                phone: '085221228806',
                 email: 'info@pangkalan-gas.id'
             });
         }
@@ -75,7 +75,7 @@ app.use(async (req, res, next) => {
         res.locals.websiteInfo = {
             description: 'Sistem distribusi gas LPG terpercaya untuk memudahkan pengelolaan penjualan, stok, dan laporan pangkalan gas di seluruh Indonesia.',
             address: 'Pangkalan Gas Utama, Kota Bandung, Jawa Barat',
-            phone: '0857-1234-5678',
+            phone: '085221228806',
             email: 'info@pangkalan-gas.id'
         };
     }
