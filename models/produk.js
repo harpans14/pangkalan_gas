@@ -13,6 +13,10 @@ module.exports = (sequelize, DataTypes) => {
     nama: DataTypes.STRING,
     harga: DataTypes.INTEGER,
     stok: DataTypes.INTEGER,
+    gambar: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     createdBy: DataTypes.INTEGER
   }, {
     sequelize,

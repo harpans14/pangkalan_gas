@@ -12,7 +12,14 @@ router.post('/acc-proses', pangkalanController.accPesanan);
 router.post('/tolak-proses', pangkalanController.tolakPesanan);
 router.post('/konfirmasi-pembayaran', pangkalanController.konfirmasiPembayaran);
 router.get('/kelola-produk', pangkalanController.kelolaProduk);
-router.post('/edit-produk/:id', pangkalanController.editProduk);
+router.get('/produk/tambah', pangkalanController.tambahProdukForm);
+router.post('/produk/tambah', upload.uploadProduk.single('gambar'), pangkalanController.tambahProduk);
+router.get('/produk/edit/:id', pangkalanController.editProdukForm);
+router.post('/produk/edit/:id', upload.uploadProduk.single('gambar'), pangkalanController.editProduk);
+router.post('/produk/hapus/:id', pangkalanController.hapusProduk);
+
+// Legacy route kept for backward compatibility
+router.post('/edit-produk/:id', upload.uploadProduk.single('gambar'), pangkalanController.editProduk);
 
 // Carousel Management Routes
 router.get('/carousel', pangkalanController.getCarousel);

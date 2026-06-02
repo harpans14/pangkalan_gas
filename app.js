@@ -4,7 +4,7 @@ const session = require('express-session');
 const app = express();
 
 const db = require('./models');
-db.sequelize.sync()
+db.sequelize.sync({ alter: true })
     .then(() => console.log('Database synced successfully.'))
     .catch(err => console.error('Database sync failed:', err));
 

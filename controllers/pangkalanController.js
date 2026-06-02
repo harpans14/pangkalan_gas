@@ -2,6 +2,8 @@ const { Transaksi, User, Produk, BarangMasuk, TabungStok, TabungTransaksi, Carou
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
+const fs = require('fs');
+const path = require('path');
 const { extractJenisDariNama, syncProdukStok, cariAtauBuatTabungStok } = require('../utils/stokHelper');
 
 exports.getPesananMasuk = async (req, res) => {
@@ -154,17 +156,80 @@ exports.kelolaProduk = async (req, res) => {
         const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
         const success = req.query.success || null;
         const error = req.query.error || null;
-        res.render('pangkalan/kelola_produk', { produk, success, error });
+        res.render('pangkalan/kelola_produk', { produk, success, error, showTambahModal: false, showEditModal: false });
     } catch (error) {
         console.error("ERROR KELOLA PRODUK:", error);
         res.status(500).send("Gagal memuat produk: " + error.message);
     }
 };
 
+exports.tambahProdukForm = async (req, res) => {
+    try {
+        res.render('pangkalan/kelola_produk', {
+            produk: await Produk.findAll({ where: { createdBy: req.session.userId } }),
+            success: null,
+            error: null,
+            showTambahModal: true
+        });
+    } catch (error) {
+        console.error("ERROR FORM TAMBAH PRODUK:", error);
+        res.status(500).send("Gagal memuat form: " + error.message);
+    }
+};
+
+exports.tambahProduk = async (req, res) => {
+    try {
+        const { nama, harga, stok } = req.body;
+
+        if (!nama || !harga) {
+            return res.redirect('/pangkalan/kelola-produk?error=invalid_input');
+        }
+
+        let gambar = null;
+        if (req.file) {
+            gambar = '/uploads/produk/' + req.file.filename;
+        }
+
+        await Produk.create({
+            nama,
+            harga: parseInt(harga) || 0,
+            stok: parseInt(stok) || 0,
+            gambar,
+            createdBy: req.session.userId
+        });
+
+        res.redirect('/pangkalan/kelola-produk?success=tambah');
+    } catch (error) {
+        console.error("ERROR TAMBAH PRODUK:", error);
+        res.redirect('/pangkalan/kelola-produk?error=gagal');
+    }
+};
+
+exports.editProdukForm = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const produkEdit = await Produk.findOne({ where: { id, createdBy: req.session.userId } });
+        if (!produkEdit) {
+            return res.redirect('/pangkalan/kelola-produk?error=not_found');
+        }
+
+        const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
+        res.render('pangkalan/kelola_produk', {
+            produk,
+            success: null,
+            error: null,
+            showEditModal: id
+        });
+    } catch (error) {
+        console.error("ERROR FORM EDIT PRODUK:", error);
+        res.status(500).send("Gagal memuat form: " + error.message);
+    }
+};
+
 exports.editProduk = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nama, harga } = req.body;
+        const { nama, harga, stok } = req.body;
 
         if (!nama || !harga) {
             return res.redirect('/pangkalan/kelola-produk?error=invalid_input');
@@ -177,11 +242,51 @@ exports.editProduk = async (req, res) => {
 
         produk.nama = nama;
         produk.harga = parseInt(harga) || 0;
+        if (stok !== undefined && stok !== null && stok !== '') {
+            produk.stok = parseInt(stok) || 0;
+        }
+
+        // Handle image upload — if new file uploaded, replace old image
+        if (req.file) {
+            // Delete old image file if exists
+            if (produk.gambar) {
+                const oldPath = path.join(__dirname, '..', 'public', produk.gambar);
+                if (fs.existsSync(oldPath)) {
+                    try { fs.unlinkSync(oldPath); } catch (e) { console.error('Failed to delete old image:', e); }
+                }
+            }
+            produk.gambar = '/uploads/produk/' + req.file.filename;
+        }
+
         await produk.save();
 
         res.redirect('/pangkalan/kelola-produk?success=edit');
     } catch (error) {
         console.error("ERROR EDIT PRODUK:", error);
+        res.redirect('/pangkalan/kelola-produk?error=gagal');
+    }
+};
+
+exports.hapusProduk = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const produk = await Produk.findOne({ where: { id, createdBy: req.session.userId } });
+        if (!produk) {
+            return res.redirect('/pangkalan/kelola-produk?error=not_found');
+        }
+
+        // Delete physical image file if exists
+        if (produk.gambar) {
+            const filePath = path.join(__dirname, '..', 'public', produk.gambar);
+            if (fs.existsSync(filePath)) {
+                try { fs.unlinkSync(filePath); } catch (e) { console.error('Failed to delete product image:', e); }
+            }
+        }
+
+        await produk.destroy();
+        res.redirect('/pangkalan/kelola-produk?success=hapus');
+    } catch (error) {
+        console.error("ERROR HAPUS PRODUK:", error);
         res.redirect('/pangkalan/kelola-produk?error=gagal');
     }
 };
@@ -998,8 +1103,6 @@ exports.deleteCarousel = async (req, res) => {
         }
 
         // Delete physical file
-        const fs = require('fs');
-        const path = require('path');
         const filePath = path.join(__dirname, '..', 'public', banner.imageUrl);
 
         if (fs.existsSync(filePath)) {

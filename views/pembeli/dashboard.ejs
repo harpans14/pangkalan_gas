@@ -193,7 +193,11 @@
                                     <% daftarProduk.forEach(p => { %>
                                     <div class="product-card">
                                         <div class="product-image">
-                                            <i class="bi bi-fire"></i>
+                                            <% if (p.gambar) { %>
+                                                <img src="<%= p.gambar %>" alt="<%= p.nama %>" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                                            <% } else { %>
+                                                <i class="bi bi-fire"></i>
+                                            <% } %>
                                         </div>
                                         <div class="product-body">
                                             <h6><%= p.nama %></h6>

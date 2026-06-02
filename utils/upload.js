@@ -57,6 +57,30 @@ const uploadCarousel = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // Allow up to 5MB for high-res banners
 });
 
+// Produk (product image) upload configuration
+const produkDir = path.join(__dirname, '..', 'public', 'uploads', 'produk');
+if (!fs.existsSync(produkDir)) {
+  fs.mkdirSync(produkDir, { recursive: true });
+}
+
+const produkStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, produkDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'produk-' + uniqueSuffix + ext);
+  }
+});
+
+const uploadProduk = multer({
+  storage: produkStorage,
+  fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 }
+});
+
 upload.uploadCarousel = uploadCarousel;
+upload.uploadProduk = uploadProduk;
 
 module.exports = upload;
