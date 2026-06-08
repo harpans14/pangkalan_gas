@@ -1,3 +1,14 @@
+/**
+ * Controller Pembeli
+ * =====================
+ * Menangani fitur untuk role 'pembeli':
+ * - Dashboard (kuota 3Kg, saldo tabung, daftar produk, riwayat transaksi)
+ * - Edit profil
+ * - Pesan gas (dengan validasi kuota 3Kg mingguan)
+ * - Upload bukti pembayaran
+ * - Lihat struk
+ */
+
 const { User, Transaksi, LogTabung, Produk } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
@@ -8,6 +19,14 @@ if (process.env.NODE_ENV !== 'production') {
     waNotifier = require('../utils/waNotifier');
 }
 
+/**
+ * DASHBOARD PEMBELI
+ * Menampilkan halaman utama pembeli dengan informasi:
+ * - Data user & saldo tabung
+ * - Kuota 3Kg mingguan (rumahtangga max 1, usaha_mikro max 3)
+ * - Daftar produk yang tersedia untuk dipesan
+ * - Riwayat transaksi dengan pagination (6 per halaman)
+ */
 exports.getDashboard = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -78,6 +97,10 @@ exports.getDashboard = async (req, res) => {
     }
 };
 
+/**
+ * HALAMAN EDIT PROFIL
+ * Menampilkan form edit profil pembeli
+ */
 exports.getEditProfil = async (req, res) => {
     try {
         const user = await User.findByPk(req.session.userId);
@@ -90,6 +113,12 @@ exports.getEditProfil = async (req, res) => {
     }
 };
 
+/**
+ * PROSES UPDATE PROFIL
+ * - Update username & alamat
+ * - Jika password diisi (min 6 karakter), hash & update password
+ * - Update session username
+ */
 exports.updateProfil = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -114,6 +143,16 @@ exports.updateProfil = async (req, res) => {
     }
 };
 
+/**
+ * PESAN GAS (Membuat Pesanan Baru)
+ * Proses pemesanan gas oleh pembeli:
+ * - Validasi input (produk, jumlah, metode ambil/kirim, metode pembayaran)
+ * - Cek stok produk tersedia
+ * - Cek kuota 3Kg mingguan (rumahtangga max 1, usaha_mikro max 3 per minggu)
+ * - Simpan transaksi dengan status 'pending'
+ * - Jika metode kirim, kirim notifikasi WhatsApp ke pangkalan
+ * - Jika COD, redirect ke dashboard; jika transfer/qris, redirect ke halaman pembayaran
+ */
 exports.pesanGas = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -209,6 +248,11 @@ exports.pesanGas = async (req, res) => {
     }
 };
 
+/**
+ * HALAMAN PEMBAYARAN
+ * Menampilkan detail transaksi yang perlu dibayar (transfer/QRIS)
+ * Pembeli bisa upload bukti pembayaran
+ */
 exports.getPembayaran = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -230,6 +274,14 @@ exports.getPembayaran = async (req, res) => {
     }
 };
 
+/**
+ * UPLOAD BUKTI PEMBAYARAN
+ * - Validasi file upload
+ * - Validasi kepemilikan transaksi
+ * - Pastikan status pembayaran masih 'belum_bayar'
+ * - Simpan path bukti & ubah status jadi 'menunggu_verifikasi'
+ * - Hapus file jika terjadi error
+ */
 exports.uploadBukti = async (req, res) => {
     try {
         if (!req.file) {
@@ -267,6 +319,11 @@ exports.uploadBukti = async (req, res) => {
     }
 };
 
+/**
+ * STRUK PEMBELIAN (untuk pembeli)
+ * Menampilkan struk transaksi milik pembeli yang sedang login
+ * Validasi kepemilikan: hanya bisa lihat transaksi milik sendiri
+ */
 exports.getStruk = async (req, res) => {
     try {
         const userId = req.session.userId;

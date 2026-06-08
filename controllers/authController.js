@@ -1,6 +1,25 @@
+/**
+ * Controller Autentikasi & Registrasi
+ * =====================================
+ * Bertugas menangani:
+ * - Login user (pangkalan & pembeli)
+ * - Logout user
+ * - Registrasi pembeli oleh pangkalan (dari halaman internal)
+ * - Registrasi pembeli oleh publik (dari halaman daftar umum)
+ */
+
 const { User } = require('../models');
 const bcrypt = require('bcrypt');
 
+/**
+ * REGISTRASI PEMBELI OLEH PANGKALAN
+ * Dipanggil dari halaman daftar pelanggan di panel pangkalan
+ * - Validasi No KTP harus 16 digit angka
+ * - Cek duplikasi No KTP
+ * - Validasi sub_role harus 'rumahtangga' atau 'usaha_mikro'
+ * - Hash password dengan bcrypt
+ * - Simpan user dengan role 'pembeli'
+ */
 exports.registerPembeli = async (req, res) => {
     try {
         const { username, password, no_ktp, sub_role, alamat, nomor_hp } = req.body;
@@ -36,6 +55,13 @@ exports.registerPembeli = async (req, res) => {
     }
 };
 
+/**
+ * LOGIN USER
+ * - Cari user berdasarkan username
+ * - Cocokkan password dengan bcrypt
+ * - Simpan session: userId, role, username
+ * - Redirect sesuai role (pangkalan → pesan-masuk, pembeli → dashboard)
+ */
 exports.login = async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -64,6 +90,12 @@ exports.login = async (req, res) => {
     }
 };
 
+/**
+ * REGISTRASI PEMBELI OLEH PUBLIK
+ * Dipanggil dari halaman /daftar (umum)
+ * - Sama seperti registerPembeli, tapi redirect ke halaman login
+ * - Menampilkan error di halaman daftar (render) bukan redirect
+ */
 exports.registerPembeliPublic = async (req, res) => {
     try {
         const { username, password, no_ktp, sub_role, alamat, nomor_hp } = req.body;
@@ -99,6 +131,11 @@ exports.registerPembeliPublic = async (req, res) => {
     }
 };
 
+/**
+ * LOGOUT
+ * - Hancurkan session
+ * - Redirect ke halaman utama (/)
+ */
 exports.logout = (req, res) => {
     req.session.destroy(() => {
         res.redirect('/');

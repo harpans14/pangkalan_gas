@@ -1,7 +1,26 @@
+/**
+ * Controller Manajemen Tabung
+ * =============================
+ * Menangani fitur tabung gas untuk role 'pangkalan':
+ * - Dashboard stok tabung (isi, kosong, total)
+ * - Transaksi titip tabung (pelanggan menitipkan tabung kosong)
+ * - Transaksi pinjam tabung (pelanggan meminjam tabung isi)
+ * - Edit, hapus, dan selesaikan transaksi tabung
+ * - Sinkronisasi stok tabung dengan stok produk
+ */
+
 const { User, TabungStok, TabungTransaksi, Produk } = require('../models');
 const { Op } = require('sequelize');
 const { syncProdukStok, cariAtauBuatTabungStok } = require('../utils/stokHelper');
 
+/**
+ * DASHBOARD TABUNG
+ * Menampilkan overview manajemen tabung:
+ * - Stok per jenis (3Kg, 5Kg, 12Kg): jumlah_isi, jumlah_kosong
+ * - Total tabung titip aktif & pinjam aktif
+ * - 20 transaksi terakhir yang masih aktif
+ * - Daftar pelanggan (untuk referensi saat transaksi)
+ */
 exports.getDashboard = async (req, res) => {
     try {
         const stok = await TabungStok.findAll({ order: [['jenis', 'ASC']] });
@@ -41,6 +60,13 @@ exports.getDashboard = async (req, res) => {
     }
 };
 
+/**
+ * TAMBAH TRANSAKSI TABUNG
+ * - tipe 'titip': pelanggan menitipkan tabung kosong (stok_kosong bertambah)
+ * - tipe 'pinjam': pelanggan meminjam tabung isi (stok_kosong berkurang)
+ * - Validasi: untuk pinjam, stok_kosong harus mencukupi
+ * - Semua transaksi baru berstatus 'aktif'
+ */
 exports.tambah = async (req, res) => {
     try {
         const { tipe, nama_pelanggan, jenis_tabung, jumlah, tanggal, keterangan } = req.body;
@@ -73,6 +99,13 @@ exports.tambah = async (req, res) => {
     }
 };
 
+/**
+ * EDIT TRANSAKSI TABUNG
+ * - Hanya bisa edit transaksi yang masih 'aktif' (bukan selesai)
+ * - Jika transaksi asli adalah pinjam, kembalikan stok_kosong dulu
+ * - Jika tipe baru pinjam, kurangi stok_kosong dengan jumlah baru
+ * - Update field transaksi
+ */
 exports.edit = async (req, res) => {
     try {
         const { id } = req.params;
@@ -123,6 +156,11 @@ exports.edit = async (req, res) => {
     }
 };
 
+/**
+ * HAPUS TRANSAKSI TABUNG
+ * - Jika transaksi adalah pinjam yang masih aktif, kembalikan stok_kosong
+ * - Hapus record transaksi dari database
+ */
 exports.hapus = async (req, res) => {
     try {
         const { id } = req.params;
@@ -145,6 +183,13 @@ exports.hapus = async (req, res) => {
     }
 };
 
+/**
+ * SELESAIKAN TRANSAKSI TABUNG
+ * Menandai transaksi tabung sebagai selesai:
+ * - Untuk pinjam: tabung kembali → stok_kosong bertambah
+ * - Untuk titip: status selesai saja (tabung sudah diambil)
+ * - Transaksi yang sudah selesai tidak bisa diedit/dihapus
+ */
 exports.selesai = async (req, res) => {
     try {
         const { id } = req.params;

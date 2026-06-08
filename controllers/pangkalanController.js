@@ -1,3 +1,20 @@
+/**
+ * Controller Pangkalan (Fitur Utama)
+ * =====================================
+ * Controller terbesar yang menangani seluruh fitur untuk role 'pangkalan':
+ * - Manajemen pesanan masuk (acc/tolak)
+ * - Konfirmasi pembayaran
+ * - CRUD Produk
+ * - Barang masuk (restock)
+ * - Transaksi langsung di pangkalan (dengan limit kuota 3Kg)
+ * - Laporan penjualan + export PDF
+ * - Riwayat transaksi dengan filter & pagination
+ * - CRUD Pelanggan
+ * - Kelola carousel banner
+ * - Kelola info website
+ * - Cetak struk
+ */
+
 const { Transaksi, User, Produk, BarangMasuk, TabungStok, TabungTransaksi, CarouselImage, WebsiteInfo } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
@@ -6,6 +23,11 @@ const fs = require('fs');
 const path = require('path');
 const { extractJenisDariNama, syncProdukStok, cariAtauBuatTabungStok } = require('../utils/stokHelper');
 
+/**
+ * MENAMPILKAN PESANAN MASUK
+ * Mengambil semua transaksi dengan status 'pending' (menunggu persetujuan)
+ * Data ditampilkan dalam bentuk list yang sudah diformat
+ */
 exports.getPesananMasuk = async (req, res) => {
     try {
         const pesanan = await Transaksi.findAll({
@@ -42,6 +64,15 @@ exports.getPesananMasuk = async (req, res) => {
     }
 };
 
+/**
+ * MENYETUJUI PESANAN
+ * - Validasi transaksi ada & masih pending
+ * - Cek stok produk mencukupi
+ * - Jika produk adalah tabung gas (3Kg/5Kg/12Kg), kurangi dari stok tabung (jumlah_isi) dan tambah ke jumlah_kosong
+ * - Jika bukan tabung, kurangi stok produk biasa
+ * - Ubah status transaksi menjadi 'disetujui'
+ * - Jika pembayaran sedang menunggu verifikasi, otomatis jadi lunas
+ */
 exports.accPesanan = async (req, res) => {
     try {
         const { id_transaksi, ttd_data } = req.body;
@@ -97,6 +128,11 @@ exports.accPesanan = async (req, res) => {
     }
 };
 
+/**
+ * MENOLAK PESANAN
+ * - Validasi transaksi ada & masih pending
+ * - Ubah status transaksi menjadi 'ditolak'
+ */
 exports.tolakPesanan = async (req, res) => {
     try {
         const { id_transaksi } = req.body;
@@ -124,6 +160,11 @@ exports.tolakPesanan = async (req, res) => {
     }
 };
 
+/**
+ * KONFIRMASI PEMBAYARAN
+ * Pembeli sudah upload bukti bayar → pangkalan verifikasi
+ * Ubah status_pembayaran dari 'menunggu_verifikasi' menjadi 'lunas'
+ */
 exports.konfirmasiPembayaran = async (req, res) => {
     try {
         const { id_transaksi } = req.body;
@@ -151,6 +192,10 @@ exports.konfirmasiPembayaran = async (req, res) => {
     }
 };
 
+/**
+ * MENAMPILKAN HALAMAN KELOLA PRODUK
+ * Menampilkan semua produk milik pangkalan yang sedang login
+ */
 exports.kelolaProduk = async (req, res) => {
     try {
         const produk = await Produk.findAll({ where: { createdBy: req.session.userId } });
@@ -163,6 +208,10 @@ exports.kelolaProduk = async (req, res) => {
     }
 };
 
+/**
+ * FORM TAMBAH PRODUK (modal)
+ * Render halaman dengan showTambahModal = true untuk menampilkan modal tambah
+ */
 exports.tambahProdukForm = async (req, res) => {
     try {
         res.render('pangkalan/kelola_produk', {
@@ -177,6 +226,12 @@ exports.tambahProdukForm = async (req, res) => {
     }
 };
 
+/**
+ * PROSES TAMBAH PRODUK
+ * - Validasi nama & harga wajib diisi
+ * - Jika ada file upload, simpath path gambar
+ * - Simpan produk baru dengan createdBy = session user
+ */
 exports.tambahProduk = async (req, res) => {
     try {
         const { nama, harga, stok } = req.body;
@@ -205,6 +260,10 @@ exports.tambahProduk = async (req, res) => {
     }
 };
 
+/**
+ * FORM EDIT PRODUK (modal)
+ * Cari produk berdasarkan id, render dengan showEditModal = id produk
+ */
 exports.editProdukForm = async (req, res) => {
     try {
         const { id } = req.params;
@@ -226,6 +285,12 @@ exports.editProdukForm = async (req, res) => {
     }
 };
 
+/**
+ * PROSES EDIT PRODUK
+ * - Validasi input
+ * - Update field nama, harga, stok
+ * - Jika upload gambar baru, hapus gambar lama dari disk & simpan yang baru
+ */
 exports.editProduk = async (req, res) => {
     try {
         const { id } = req.params;
@@ -246,9 +311,7 @@ exports.editProduk = async (req, res) => {
             produk.stok = parseInt(stok) || 0;
         }
 
-        // Handle image upload — if new file uploaded, replace old image
         if (req.file) {
-            // Delete old image file if exists
             if (produk.gambar) {
                 const oldPath = path.join(__dirname, '..', 'public', produk.gambar);
                 if (fs.existsSync(oldPath)) {
@@ -267,6 +330,11 @@ exports.editProduk = async (req, res) => {
     }
 };
 
+/**
+ * HAPUS PRODUK
+ * - Hapus file gambar dari disk jika ada
+ * - Hapus data produk dari database
+ */
 exports.hapusProduk = async (req, res) => {
     try {
         const { id } = req.params;
@@ -275,7 +343,6 @@ exports.hapusProduk = async (req, res) => {
             return res.redirect('/pangkalan/kelola-produk?error=not_found');
         }
 
-        // Delete physical image file if exists
         if (produk.gambar) {
             const filePath = path.join(__dirname, '..', 'public', produk.gambar);
             if (fs.existsSync(filePath)) {
@@ -291,6 +358,10 @@ exports.hapusProduk = async (req, res) => {
     }
 };
 
+/**
+ * MENAMPILKAN BARANG MASUK (RESTOCK)
+ * Menampilkan histori barang masuk beserta daftar produk & stok tabung
+ */
 exports.getBarangMasuk = async (req, res) => {
     try {
         const barangMasuk = await BarangMasuk.findAll({
@@ -315,6 +386,13 @@ exports.getBarangMasuk = async (req, res) => {
     }
 };
 
+/**
+ * TAMBAH BARANG MASUK (RESTOCK)
+ * - Validasi input
+ * - Simpan catatan barang masuk
+ * - Jika produk adalah tabung gas: kurangi stok_kosong, tambah stok_isi, lalu sinkronisasi
+ * - Jika bukan tabung: langsung tambah stok produk
+ */
 exports.tambahBarangMasuk = async (req, res) => {
     try {
         const { produk_id, jumlah, keterangan, tanggal } = req.body;
@@ -361,6 +439,13 @@ exports.tambahBarangMasuk = async (req, res) => {
     }
 };
 
+/**
+ * EDIT BARANG MASUK
+ * Mengubah data barang masuk dan menyesuaikan stok:
+ * - Jika produk berubah: kurangi stok produk lama, tambah stok produk baru
+ * - Jika produk sama: sesuaikan selisih jumlah
+ * Mendukung stok tabung (3Kg/5Kg/12Kg) dan stok produk biasa
+ */
 exports.editBarangMasuk = async (req, res) => {
     try {
         const { id } = req.params;
@@ -440,6 +525,10 @@ exports.editBarangMasuk = async (req, res) => {
     }
 };
 
+/**
+ * HAPUS BARANG MASUK
+ * Menghapus data barang masuk dan mengembalikan stok (dikurangi)
+ */
 exports.hapusBarangMasuk = async (req, res) => {
     try {
         const { id } = req.params;
@@ -475,6 +564,10 @@ exports.hapusBarangMasuk = async (req, res) => {
     }
 };
 
+/**
+ * MENAMPILKAN DAFTAR PELANGGAN
+ * Ambil semua user dengan role 'pembeli', kecuali field password
+ */
 exports.daftarPelanggan = async (req, res) => {
     try {
         const pelanggan = await User.findAll({
@@ -493,6 +586,13 @@ exports.daftarPelanggan = async (req, res) => {
     }
 };
 
+/**
+ * EDIT DATA PELANGGAN
+ * - Validasi pelanggan ada
+ * - Jika No KTP diubah, cek duplikasi
+ * - Validasi sub_role
+ * - Jika password diisi, hash ulang; jika kosong, password tetap
+ */
 exports.editPelanggan = async (req, res) => {
     try {
         const { id } = req.params;
@@ -533,6 +633,10 @@ exports.editPelanggan = async (req, res) => {
     }
 };
 
+/**
+ * HAPUS PELANGGAN
+ * Hapus user dengan role pembeli dari database
+ */
 exports.hapusPelanggan = async (req, res) => {
     try {
         const { id } = req.params;
@@ -551,6 +655,14 @@ exports.hapusPelanggan = async (req, res) => {
     }
 };
 
+/**
+ * HALAMAN TRANSAKSI LANGSUNG
+ * Pangkalan melayani pembelian langsung di lokasi:
+ * - Cari pelanggan berdasarkan No KTP (via query parameter)
+ * - Tampilkan kuota 3Kg mingguan (rumahtangga = 1, usaha_mikro = 3)
+ * - Tampilkan riwayat 5 transaksi terakhir pelanggan
+ * - Tampilkan daftar produk yang tersedia
+ */
 exports.transaksiLangsung = async (req, res) => {
     try {
         const { no_ktp } = req.query;
@@ -640,6 +752,15 @@ exports.transaksiLangsung = async (req, res) => {
     }
 };
 
+/**
+ * PROSES TRANSAKSI LANGSUNG
+ * Pangkalan memproses pembelian langsung:
+ * - Validasi pelanggan & produk
+ * - Cek stok tersedia
+ * - Cek kuota 3Kg mingguan (rumahtangga max 1, usaha_mikro max 3)
+ * - Kurangi stok tabung (jumlah_isi → jumlah_kosong) atau stok produk biasa
+ * - Simpan transaksi dengan status 'selesai' langsung (tanpa perlu acc)
+ */
 exports.prosesTransaksiLangsung = async (req, res) => {
     try {
         const { user_id, produk_id, jumlah_beli } = req.body;
@@ -725,6 +846,14 @@ exports.prosesTransaksiLangsung = async (req, res) => {
     }
 };
 
+/**
+ * AMBIL DATA LAPORAN BULANAN
+ * Helper function untuk mengambil data transaksi per bulan:
+ * - Filter transaksi dengan status berhasil (disetujui/selesai/ACC)
+ * - Hitung total transaksi, total tabung terjual, total pendapatan
+ * - Rekap per produk
+ * - Hitung juga pesanan pending & ditolak di periode yang sama
+ */
 async function getDataLaporan(bulan, tahun) {
     const startDate = new Date(tahun, bulan - 1, 1);
     const endDate = new Date(tahun, bulan, 0, 23, 59, 59, 999);
@@ -796,14 +925,26 @@ async function getDataLaporan(bulan, tahun) {
     };
 }
 
+/**
+ * FORMAT RUPIAH
+ * Ubah angka ke format mata uang IDR (contoh: Rp 50.000)
+ */
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 }
 
+/**
+ * FORMAT TANGGAL INDONESIA
+ * Ubah date ke format Indonesia (contoh: 1 Januari 2024)
+ */
 function formatTanggal(date) {
     return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date));
 }
 
+/**
+ * HALAMAN LAPORAN PENJUALAN
+ * Tampilkan laporan penjualan berdasarkan bulan & tahun (default: bulan saat ini)
+ */
 exports.laporanPenjualan = async (req, res) => {
     try {
         const bulan = parseInt(req.query.bulan) || (new Date().getMonth() + 1);
@@ -822,6 +963,15 @@ exports.laporanPenjualan = async (req, res) => {
     }
 };
 
+/**
+ * DOWNLOAD LAPORAN PDF
+ * Generate PDF laporan penjualan bulanan menggunakan PDFKit:
+ * - Layout landscape
+ * - Bagian Ringkasan (total transaksi, tabung terjual, pendapatan, pending, ditolak)
+ * - Tabel Rekap per Produk
+ * - Tabel Detail Transaksi (No, Tanggal, Pembeli, Produk, Jml, Harga, Total, Status)
+ * - Auto page break jika konten melebihi satu halaman
+ */
 exports.downloadLaporanPDF = async (req, res) => {
     try {
         const bulan = parseInt(req.query.bulan) || (new Date().getMonth() + 1);
@@ -951,6 +1101,15 @@ exports.downloadLaporanPDF = async (req, res) => {
     }
 };
 
+/**
+ * RIWAYAT TRANSAKSI (dengan filter & pagination)
+ * Menampilkan semua transaksi dengan fitur:
+ * - Filter status (pending/disetujui/ditolak/selesai)
+ * - Filter bulan & tahun
+ * - Pencarian berdasarkan nama pembeli
+ * - Pagination (15 data per halaman)
+ * - Menampilkan total tabung & total pendapatan dari hasil filter
+ */
 exports.getRiwayatTransaksi = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -1038,6 +1197,11 @@ exports.getRiwayatTransaksi = async (req, res) => {
     }
 };
 
+/**
+ * CETAK STRUK TRANSAKSI
+ * Menampilkan struk pembelian berdasarkan ID transaksi
+ * (Digunakan oleh pangkalan & pembeli)
+ */
 exports.getStruk = async (req, res) => {
     try {
         const transaksi = await Transaksi.findByPk(req.params.id, {
@@ -1060,6 +1224,10 @@ exports.getStruk = async (req, res) => {
     }
 };
 
+/**
+ * MENAMPILKAN HALAMAN KELOLA CAROUSEL
+ * Menampilkan daftar banner yang tampil di halaman utama (index)
+ */
 exports.getCarousel = async (req, res) => {
     try {
         const banners = await CarouselImage.findAll({ order: [['createdAt', 'DESC']] });
@@ -1072,6 +1240,10 @@ exports.getCarousel = async (req, res) => {
     }
 };
 
+/**
+ * UPLOAD GAMBAR CAROUSEL
+ * Menambahkan banner baru (gambar + judul + deskripsi)
+ */
 exports.uploadCarousel = async (req, res) => {
     try {
         const { title, description } = req.body;
@@ -1094,6 +1266,10 @@ exports.uploadCarousel = async (req, res) => {
     }
 };
 
+/**
+ * HAPUS GAMBAR CAROUSEL
+ * Hapus file dari disk & hapus record dari database
+ */
 exports.deleteCarousel = async (req, res) => {
     try {
         const { id } = req.params;
@@ -1102,7 +1278,6 @@ exports.deleteCarousel = async (req, res) => {
             return res.redirect('/pangkalan/carousel?error=not_found');
         }
 
-        // Delete physical file
         const filePath = path.join(__dirname, '..', 'public', banner.imageUrl);
 
         if (fs.existsSync(filePath)) {
@@ -1117,6 +1292,10 @@ exports.deleteCarousel = async (req, res) => {
     }
 };
 
+/**
+ * UPDATE INFO WEBSITE
+ * Mengubah deskripsi, alamat, telepon, email yang tampil di footer & halaman utama
+ */
 exports.updateWebsiteInfo = async (req, res) => {
     try {
         const { description, address, phone, email } = req.body;
